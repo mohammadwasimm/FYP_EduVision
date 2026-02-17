@@ -92,19 +92,19 @@ export function getSeverityTone(severity) {
       return {
         label: "High",
         className:
-          "bg-rose-50 text-rose-500 text-[11px] px-3 py-1 rounded-full font-medium",
+          "bg-rose-50 text-rose-500 text-[11px] px-3 py-1 font-medium",
       };
     case "medium":
       return {
         label: "Medium",
         className:
-          "bg-amber-50 text-amber-500 text-[11px] px-3 py-1 rounded-full font-medium",
+          "bg-amber-50 text-amber-500 text-[11px] px-3 py-1 font-medium",
       };
     default:
       return {
         label: "Low",
         className:
-          "bg-slate-100 text-slate-500 text-[11px] px-3 py-1 rounded-full font-medium",
+          "bg-slate-100 text-slate-500 text-[11px] px-3 py-1 font-medium",
       };
   }
 }
@@ -152,10 +152,10 @@ export function Reports() {
       key: "student",
       render: (_text, record) => (
         <div>
-          <p className="text-sm font-medium text-slate-900">
+          <p className="text-sm font-medium text-[#2b3674]">
             {record.studentName}
           </p>
-          <p className="text-xs text-slate-500">{record.rollNumber}</p>
+          <p className="text-xs text-[#2b3674]">{record.rollNumber}</p>
         </div>
       ),
     },
@@ -165,8 +165,8 @@ export function Reports() {
       key: "exam",
       render: (_text, record) => (
         <div>
-          <p className="text-sm font-medium text-slate-900">{record.exam}</p>
-          <p className="text-xs text-slate-500">{record.subject}</p>
+          <p className="text-sm font-medium text-[#2b3674]">{record.exam}</p>
+          <p className="text-xs text-[#2b3674]">{record.subject}</p>
         </div>
       ),
     },
@@ -175,7 +175,7 @@ export function Reports() {
       dataIndex: "cheatingType",
       key: "cheatingType",
       render: (text) => (
-        <span className="text-sm text-slate-700">{text}</span>
+        <span className="text-sm text-[#2b3674]">{text}</span>
       ),
     },
     {
@@ -183,7 +183,7 @@ export function Reports() {
       dataIndex: "timestamp",
       key: "timestamp",
       render: (text) => (
-        <span className="text-sm text-slate-600">{text}</span>
+        <span className="text-sm text-[#2b3674]">{text}</span>
       ),
     },
     {
@@ -201,13 +201,13 @@ export function Reports() {
       render: (_text, record) => (
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600"
+          className="inline-flex items-center gap-1 text-xs font-medium text-[#4318ff]"
           onClick={() => {
             setSelectedIncident(record);
             setIsEvidenceOpen(true);
           }}
         >
-          <FiEye className="w-3 h-3" />
+          <FiEye className="w-3 h-3 text-[#4318ff]" />
           View
         </button>
       ),
@@ -251,7 +251,8 @@ export function Reports() {
 
         <div className="flex justify-end">
           <Button
-            className="bg-[#1a1f40] text-white flex items-center gap-2 px-4 [&:hover]:!bg-[#1a1f40]"
+            type="primary"
+            className="flex items-center gap-2 px-4"
           >
             <FiDownload className="w-4 h-4" />
             <span className="text-sm">Export CSV</span>
@@ -274,10 +275,10 @@ export function Reports() {
               </span>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-semibold text-slate-900">
+              <p className="text-2xl font-semibold text-[#2b3674]">
                 {stats.total}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Total Incidents</p>
+              <p className="mt-1 text-sm text-[#2b3674]">Total Incidents</p>
             </div>
           </CardBody>
         </Card>
@@ -297,7 +298,7 @@ export function Reports() {
               <p className="text-2xl font-semibold text-rose-500">
                 {stats.high}
               </p>
-              <p className="mt-1 text-xs text-slate-500">High Severity</p>
+              <p className="mt-1 text-sm text-[#2b3674]">High Severity</p>
             </div>
           </CardBody>
         </Card>
@@ -317,7 +318,7 @@ export function Reports() {
               <p className="text-2xl font-semibold text-amber-500">
                 {stats.medium}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Medium Severity</p>
+              <p className="mt-1 text-sm text-[#2b3674]">Medium Severity</p>
             </div>
           </CardBody>
         </Card>

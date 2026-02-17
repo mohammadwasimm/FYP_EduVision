@@ -11,17 +11,9 @@
 
   body {
     @apply m-0 antialiased bg-background text-text font-body;
-    background-image:
-      radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.25) 1px, transparent 0),
-      radial-gradient(circle at 50% 0, rgba(124, 58, 237, 0.25), transparent 55%),
-      radial-gradient(circle at 10% 90%, rgba(44, 212, 22, 0.3), transparent 55%),
-      radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.28), transparent 55%);
-    background-size:
-      40px 40px,
-      100% 50%,
-      75% 75%,
-      80% 80%;
-    background-color: #050816;
+    /* Match app shell background to avoid initial flash on load */
+    background-image: none;
+    background-color: #f1f5f9;
   }
 
   code {
@@ -29,15 +21,26 @@
   }
 }
 
-/* Override antd Input focus styles (Search) */
+/* Override antd Input base / focus / hover styles (Search + common inputs) */
+.ant-input,
+.ant-input-affix-wrapper {
+  border-color: rgb(226 232 240) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: none !important;
+}
+
 .ant-input:focus,
 .ant-input-focused,
 .ant-input:focus-within,
 .ant-input-affix-wrapper:focus,
 .ant-input-affix-wrapper-focused,
-.ant-input-affix-wrapper:focus-within {
+.ant-input-affix-wrapper:focus-within,
+.ant-input:hover,
+.ant-input-affix-wrapper:hover {
   border-color: rgb(226 232 240) !important;
   box-shadow: none !important;
+  outline: none !important;
 }
 
 /* Dropdown (Select) styling to match Search input */
@@ -51,10 +54,12 @@
   box-shadow: none !important;
 }
 
-.custom-dropdown .ant-select-selection-item {
+.custom-dropdown .ant-select-selection-item,
+.custom-dropdown .ant-select-selection-placeholder {
   display: flex;
   align-items: center;
-  font-size: 14px;
+  font-size: 13px;
+  color: #2b3674 !important;
 }
 
 .custom-dropdown .ant-select-arrow {
@@ -93,6 +98,28 @@
 }
 
 /* =========================
+   Slider styling (Settings)
+   ========================= */
+
+.ant-slider .ant-slider-track {
+  background-color: #4318ff !important;
+}
+
+.ant-slider .ant-slider-handle::after {
+  box-shadow: 0 0 0 2px #4318ff !important;
+  border-color: #4318ff !important;
+}
+
+.ant-slider:hover .ant-slider-track {
+  background-color: #4318ff !important;
+}
+
+.ant-slider:hover .ant-slider-handle::after {
+  box-shadow: 0 0 0 2px #4318ff !important;
+  border-color: #4318ff !important;
+}
+
+/* =========================
    Table styling (custom-table)
    ========================= */
 
@@ -109,20 +136,83 @@
 .custom-table .ant-table-thead > tr > th {
   font-weight: 600;
   font-size: 12px;
-  color: #64748b;
+  color: #a3aed0;
   background: #ffffff;
   white-space: nowrap;
-  padding: 12px 16px;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .custom-table .ant-table-tbody > tr > td {
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
   vertical-align: middle;
   padding: 12px 16px;
   background: #ffffff;
   color: #0f172a;
+}
+
+/* Status pill styling for table statuses */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  height: 27px;
+  width: 82px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2b3674;
+}
+
+.status-pill--scheduled {
+  background: #ffb54733;
+}
+
+.status-pill--ongoing {
+  background: rgb(60 231 123 / 31%);
+}
+
+.status-pill--completed {
+  background: rgba(163, 174, 208, 0.2);
+}
+
+.ant-btn-link.text-link-4318ff {
+  color: #4318ff !important;
+  font-size: 14px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Global primary button color override */
+.ant-btn-primary {
+  background-color: #4318ff !important;
+  border-color: #4318ff !important;
+}
+
+.ant-btn-primary:hover,
+.ant-btn-primary:focus,
+.ant-btn-primary:active {
+  background-color: #4318ff !important;
+  border-color: #4318ff !important;
+}
+
+/* Outline button mode with #4318ff border and text */
+.ant-btn.btn-outline-4318ff {
+  background-color: #ffffff !important;
+  border: 1px solid #4318ff !important;
+  color: #4318ff !important;
+  height: 44px !important;
+  border-radius: 7px !important;
+  font-size: 15px !important;
+}
+
+.ant-btn.btn-outline-4318ff:hover,
+.ant-btn.btn-outline-4318ff:focus,
+.ant-btn.btn-outline-4318ff:active {
+  background-color: #f4f7ff !important;
+  border-color: #4318ff !important;
+  color: #4318ff !important;
 }
 
 .custom-table.with-borders .ant-table-tbody > tr > td {
@@ -155,18 +245,21 @@
   width: 18px !important;
   height: 18px !important;
   border-radius: 2px !important;
-  border: 2px solid #2563eb !important;
+  border: 2px solid #4318ff !important;
   background-color: #ffffff !important;
   transition: all 0.2s !important;
 }
 
 .commonCheckbox :global(.ant-checkbox-checked .ant-checkbox-inner) {
-  background-color: #1a1f40 !important;
-  border-color: #1a1f40 !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 2px !important;
+  background-color: #4318ff !important;
+  border-color: #4318ff !important;
 }
 
 .commonCheckbox :global(.ant-checkbox-inner::after) {
-  border-color: #2563eb !important;
+  border-color: #4318ff !important;
 }
 
 .commonCheckbox :global(.ant-checkbox-checked .ant-checkbox-inner::after) {
@@ -174,8 +267,23 @@
 }
 
 .commonCheckbox :global(.ant-checkbox-input:focus + .ant-checkbox-inner) {
-  border-color: #1a1f40 !important;
-  box-shadow: 0 0 0 2px rgba(26, 31, 64, 0.1) !important;
+  border-color: #4318ff !important;
+  box-shadow: 0 0 0 2px rgba(67, 24, 255, 0.1) !important;
+}
+
+/* Global checkbox overrides to beat hashed AntD classes */
+.ant-checkbox-inner {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 2px !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 2px !important;
+  background-color: #4318ff !important;
+  border-color: #4318ff !important;
 }
 
 .commonCheckbox.errorCheckbox :global(.ant-checkbox-inner) {

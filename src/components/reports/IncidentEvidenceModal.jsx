@@ -15,10 +15,10 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-[#2b3674]">
             Incident Evidence
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-[#2b3674] mt-1">
             {incident.studentName} • {incident.timestamp}
           </p>
         </div>
@@ -29,10 +29,10 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
             <div className="h-14 w-14 rounded-full bg-white flex items-center justify-center">
               <IoWarningOutline className="w-7 h-7 text-slate-400" />
             </div>
-            <p className="text-sm font-medium text-slate-600">
+            <p className="text-sm font-medium text-[#2b3674]">
               Evidence Preview
             </p>
-            <p className="text-xs text-slate-400">{incident.evidenceFile}</p>
+            <p className="text-xs text-[#2b3674]">{incident.evidenceFile}</p>
           </CardBody>
         </Card>
 
@@ -40,15 +40,15 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-slate-500 mb-1">Cheating Type</p>
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-xs text-[#2b3674] mb-1">Cheating Type</p>
+              <p className="text-sm font-semibold text-[#2b3674]">
                 {incident.cheatingType}
               </p>
             </CardBody>
           </Card>
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-slate-500 mb-1">Severity</p>
+              <p className="text-xs text-[#2b3674] mb-1">Severity</p>
               <p
                 className={`text-sm font-semibold ${
                   getSeverityTone(incident.severity).className
@@ -60,16 +60,16 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
           </Card>
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-slate-500 mb-1">Exam</p>
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-xs text-[#2b3674] mb-1">Exam</p>
+              <p className="text-sm font-semibold text-[#2b3674]">
                 {incident.exam}
               </p>
             </CardBody>
           </Card>
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-slate-500 mb-1">Subject</p>
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-xs text-[#2b3674] mb-1">Subject</p>
+              <p className="text-sm font-semibold text-[#2b3674]">
                 {incident.subject}
               </p>
             </CardBody>
@@ -79,13 +79,15 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
         {/* Footer Buttons */}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <Button
-            className="bg-slate-900 text-white flex items-center justify-center gap-2 px-4 [&:hover]:!bg-slate-900 [&:hover]:!border-slate-900 [&:hover]:!text-white [&:focus]:!bg-slate-900 [&:focus]:!border-slate-900 [&:focus]:!text-white [&:active]:!bg-slate-900 [&:active]:!border-slate-900 [&:active]:!text-white"
+            type="primary"
+            className="flex items-center justify-center gap-2 px-4"
           >
             <FiDownload className="w-4 h-4" />
             <span className="text-sm">Download Evidence</span>
           </Button>
           <Button
-            className="bg-slate-100 text-slate-700 border border-slate-200 px-4 [&:hover]:!bg-slate-100 [&:hover]:!border-slate-200 [&:hover]:!text-slate-700 [&:focus]:!bg-slate-100 [&:focus]:!border-slate-200 [&:focus]:!text-slate-700 [&:active]:!bg-slate-100 [&:active]:!border-slate-200 [&:active]:!text-slate-700"
+            mode="outline-primary"
+            className="px-4"
             onClick={onClose}
           >
             Close

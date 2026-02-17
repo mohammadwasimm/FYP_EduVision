@@ -23,9 +23,9 @@ export function SearchWithFilters({
           <Button
             key={filter.key}
             type={activeFilter === filter.key ? "primary" : "default"}
-            className={`text-xs font-medium h-[40px] px-4 rounded-[8px] pointer-events-auto ${
+            className={`text-xs font-medium h-[40px] w-24 px-4 rounded-[6px] pointer-events-auto ${
               activeFilter === filter.key
-                ? "bg-[#1a1f40] text-white border-[#1a1f40] [&:hover]:!bg-[#1a1f40] [&:hover]:!border-[#1a1f40] [&:hover]:!text-white [&:focus]:!bg-[#1a1f40] [&:focus]:!border-[#1a1f40] [&:focus]:!text-white [&:active]:!bg-[#1a1f40] [&:active]:!border-[#1a1f40] [&:active]:!text-white"
+                ? "bg-[#4318ff] text-white border-[#4318ff] [&:hover]:!bg-[#4318ff] [&:hover]:!border-[#4318ff] [&:hover]:!text-white [&:focus]:!bg-[#4318ff] [&:focus]:!border-[#4318ff] [&:focus]:!text-white [&:active]:!bg-[#4318ff] [&:active]:!border-[#4318ff] [&:active]:!text-white"
                 : "bg-white text-slate-600 border border-slate-200 [&:hover]:!bg-white [&:hover]:!border-slate-200 [&:hover]:!text-slate-600 [&:focus]:!bg-white [&:focus]:!border-slate-200 [&:focus]:!text-slate-600 [&:active]:!bg-white [&:active]:!border-slate-200 [&:active]:!text-slate-600"
             }`}
             style={{ transition: 'none' }}

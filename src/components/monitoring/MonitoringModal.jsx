@@ -54,8 +54,8 @@ export function MonitoringModal({ student, isOpen, onClose, onSessionOut }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">{name}</h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <h2 className="text-xl font-semibold text-[#2b3674]">{name}</h2>
+            <p className="text-sm text-[#2b3674] mt-1">
               {rollNumber} • {studentId}
             </p>
           </div>
@@ -83,7 +83,7 @@ export function MonitoringModal({ student, isOpen, onClose, onSessionOut }) {
           {metricCards.map((metric, index) => (
             <Card key={index} className="border-0">
               <CardBody>
-                <p className="text-md text-slate-500 mb-1">{metric.label}</p>
+                <p className="text-[14px] text-[#2b3674] mb-1">{metric.label}</p>
                 <p className={`text-sm font-semibold ${getStatusColor(metric.status)}`}>
                   {metric.value}
                 </p>
@@ -92,10 +92,10 @@ export function MonitoringModal({ student, isOpen, onClose, onSessionOut }) {
           ))}
         </div>
 
-        {/* Session Out Button */}
+        {/* Session Out Button (outline mode) */}
         <Button
-          type="primary"
-          className="w-full bg-red-500 text-white h-17 font-medium rounded-[7px] [&:hover]:!bg-red-500 [&:focus]:!bg-red-500 [&:active]:!bg-red-500"
+          mode="outline-primary"
+          className="w-full"
           onClick={onSessionOut}
         >
           Session Out Student

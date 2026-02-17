@@ -18,13 +18,13 @@ function StatCard({
   deltaColorClass,
 }) {
   return (
-    <Card className="border-slate-200">
+    <Card className="border-slate-200 ">
       <CardBody className="space-y-4">
         <div className="flex items-start justify-between">
           <div
-            className={`h-11 w-11 rounded-2xl flex items-center justify-center ${iconBgClass} ${iconColorClass}`}
+            className={`h-11 w-11 rounded-[8px] flex items-center justify-center ${iconBgClass} ${iconColorClass}`}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-7 h-7" />
           </div>
           {delta ? (
             <span
@@ -35,8 +35,8 @@ function StatCard({
           ) : null}
         </div>
         <div>
-          <p className="text-2xl font-semibold text-slate-900">{value}</p>
-          <p className="mt-1 text-xs text-slate-500">{label}</p>
+          <p className="text-2xl font-semibold text-[#2b3674]">{value}</p>
+          <p className="mt-1 text-sm text-[#2b3674]">{label}</p>
         </div>
       </CardBody>
     </Card>
@@ -91,19 +91,19 @@ export function Dashboard() {
         <Card className="xl:col-span-2 border-slate-200">
           <CardBody>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="text-sm font-semibold text-[#2b3674]">
                 Recent Exams
               </h2>
               <Button
                 type="link"
-                className="text-xs font-medium text-blue-600 hover:text-blue-700 px-0"
+                className="text-link-4318ff font-medium"
                 onClick={() => navigate(ROUTE_ENDPOINTS["live-monitoring"])}
               >
                 View all
               </Button>
             </div>
 
-            <div className="mt-4">
+            <div>
               <DataTable
                 columns={[
                   {
@@ -111,7 +111,7 @@ export function Dashboard() {
                     dataIndex: "name",
                     key: "name",
                     render: (text) => (
-                      <span className="font-medium text-slate-900">{text}</span>
+                      <span className="font-medium text-[#2b3674]">{text}</span>
                     ),
                   },
                   {
@@ -119,7 +119,7 @@ export function Dashboard() {
                     dataIndex: "subject",
                     key: "subject",
                     render: (text) => (
-                      <span className="text-slate-600">{text}</span>
+                      <span className="text-[#2b3674]">{text}</span>
                     ),
                   },
                   {
@@ -128,7 +128,7 @@ export function Dashboard() {
                     key: "students",
                     align: "center",
                     render: (value) => (
-                      <span className="text-slate-600">{value}</span>
+                      <span className="text-[#2b3674]">{value}</span>
                     ),
                   },
                   {
@@ -136,21 +136,30 @@ export function Dashboard() {
                     dataIndex: "date",
                     key: "date",
                     render: (text) => (
-                      <span className="text-slate-600">{text}</span>
+                      <span className="text-[#2b3674]">{text}</span>
                     ),
                   },
                   {
                     title: "STATUS",
                     dataIndex: "status",
                     key: "status",
-                    render: (status) => (
-                      <Badge
-                        tone={status.tone}
-                        className="bg-slate-50 text-slate-600 ring-slate-200"
-                      >
-                        {status.label}
-                      </Badge>
-                    ),
+                    render: (status) => {
+                      const baseClass = "status-pill";
+                      const toneClass =
+                        status.label === "Scheduled"
+                          ? "status-pill--scheduled"
+                          : status.label === "Ongoing"
+                          ? "status-pill--ongoing"
+                          : status.label === "Completed"
+                          ? "status-pill--completed"
+                          : "";
+
+                      return (
+                        <span className={`${baseClass} ${toneClass}`}>
+                          {status.label}
+                        </span>
+                      );
+                    },
                   },
                 ]}
                 dataSource={[
@@ -186,6 +195,22 @@ export function Dashboard() {
                     date: "Jan 2, 2026",
                     status: { label: "Completed", tone: "default" },
                   },
+                   {
+                    key: "chem-quiz",
+                    name: "Chemistry Quiz",
+                    subject: "Chemistry",
+                    students: 234,
+                    date: "Jan 2, 2026",
+                    status: { label: "Completed", tone: "default" },
+                  },
+                  {
+                    key: "bio-test",
+                    name: "Biology Test",
+                    subject: "Biology",
+                    students: 178,
+                    date: "Jan 2, 2026",
+                    status: { label: "Completed", tone: "default" },
+                  },
                 ]}
               />
             </div>
@@ -195,12 +220,12 @@ export function Dashboard() {
         <Card className="border-slate-200">
           <CardBody>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="text-sm font-semibold text-[#2b3674]">
                 Live Alerts
               </h2>
               <Button
                 type="link"
-                className="text-xs font-medium text-blue-600 hover:text-blue-700 px-0"
+                className="text-link-4318ff font-medium"
                 onClick={() => navigate(ROUTE_ENDPOINTS["live-monitoring"])}
               >
                 Monitor
@@ -241,7 +266,7 @@ export function Dashboard() {
                 <div
                   key={`${a.name}-${a.room}`}
                   className={[
-                    "rounded-2xl border px-4 py-3",
+                    "rounded-[8px] border px-4 py-3",
                     a.tone === "danger"
                       ? "border-rose-200 bg-rose-50"
                       : "border-amber-200 bg-amber-50",
@@ -249,23 +274,23 @@ export function Dashboard() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-[#2b3674]">
                         {a.name}
                       </p>
-                      <p className="text-[11px] text-slate-500">{a.room}</p>
+                      <p className="text-[11px] text-[#2b3674]">{a.room}</p>
                     </div>
-                    <Badge
-                      tone={a.tone === "danger" ? "danger" : "warning"}
-                      className={
+                    <span
+                      className={[
+                        "inline-flex items-center justify-center px-3 h-[27px] rounded-[3px] text-[11px] font-medium",
                         a.tone === "danger"
-                          ? "bg-rose-100 text-rose-700 ring-rose-200"
-                          : "bg-amber-100 text-amber-700 ring-amber-200"
-                      }
+                          ? "bg-rose-100 text-rose-700"
+                          : "bg-amber-100 text-amber-700",
+                      ].join(" ")}
                     >
                       {a.tag}
-                    </Badge>
+                    </span>
                   </div>
-                  <p className="mt-2 text-[11px] text-slate-500">{a.ago}</p>
+                  <p className="mt-2 text-[11px] text-[#2b3674]">{a.ago}</p>
                 </div>
               ))}
             </div>
@@ -280,18 +305,24 @@ export function Dashboard() {
             desc: "Add, edit, or remove students from the system",
             icon: FiUsers,
             to: ROUTE_ENDPOINTS.students,
+            iconBgClass: "bg-blue-50",
+            iconColorClass: "text-blue-500",
           },
           {
             title: "Create New Paper",
             desc: "Set up a new exam with MCQs and schedule it",
             icon: FiFileText,
             to: ROUTE_ENDPOINTS["create-paper"],
+            iconBgClass: "bg-emerald-50",
+            iconColorClass: "text-emerald-500",
           },
           {
             title: "Live Monitoring",
             desc: "Watch live sessions and detect suspicious activity",
             icon: FiMonitor,
             to: ROUTE_ENDPOINTS["live-monitoring"],
+            iconBgClass: "bg-amber-50",
+            iconColorClass: "text-amber-500",
           },
         ].map((c) => (
           <Card
@@ -301,17 +332,19 @@ export function Dashboard() {
           >
             <CardBody className="flex flex-col items-start gap-3 py-6">
               {/* Row 1: icon */}
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
-                <c.icon className="w-5 h-5" />
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${c.iconBgClass} ${c.iconColorClass}`}
+              >
+                <c.icon className="w-7 h-7" />
               </div>
 
               {/* Row 2: title */}
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-[#2b3674]">
                 {c.title}
               </p>
 
               {/* Row 3: description */}
-              <p className="text-xs text-slate-500">{c.desc}</p>
+              <p className="text-xs text-[#2b3674]">{c.desc}</p>
             </CardBody>
           </Card>
         ))}

@@ -71,9 +71,9 @@ export function MonitoringCard({ student, onClick }) {
       <div className="p-4 bg-white">
         {/* Student Info */}
         <div className="mb-3">
-          <h3 className="text-sm font-semibold text-slate-900 mb-1">{name}</h3>
+          <h3 className="text-sm font-semibold text-[#2b3674] mb-1">{name}</h3>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">{rollNumber}</p>
+            <p className="text-xs text-[#2b3674]">{rollNumber}</p>
             <Badge className={`${config.tagColor} text-[10px] px-2 py-0.5 font-medium`}>
               {status}
             </Badge>
@@ -84,20 +84,20 @@ export function MonitoringCard({ student, onClick }) {
         <div className="flex items-center gap-2">
           {/* Movement Card */}
           <div className="flex flex-col items-center justify-center px-3 py-2 rounded-lg bg-[#F1F5F980] flex-1">
-            <BsArrows className="w-4 h-4 text-[#65758B] mb-1" />
-            <span className="text-xs text-[#65758B] capitalize">{metrics.movement || "Normal"}</span>
+            <BsArrows className="w-4 h-4 text-[#2b3674] mb-1" />
+            <span className="text-xs text-[#2b3674] capitalize">{metrics.movement || "Normal"}</span>
           </div>
           
           {/* Suspicious Card */}
           <div className="flex flex-col items-center justify-center px-3 py-2 rounded-lg bg-[#F1F5F980] flex-1">
-            <FiEye className="w-4 h-4 text-[#65758B] mb-1" />
-            <span className="text-xs text-[#65758B] capitalize">{metrics.suspicious || "Normal"}</span>
+            <FiEye className="w-4 h-4 text-[#2b3674] mb-1" />
+            <span className="text-xs text-[#2b3674] capitalize">{metrics.suspicious || "Normal"}</span>
           </div>
           
           {/* Phone Detection Card */}
           <div className="flex flex-col items-center justify-center px-3 py-2 rounded-lg bg-[#F1F5F980] flex-1">
-            <MdPhoneIphone className="w-4 h-4 text-[#65758B] mb-1" />
-            <span className="text-xs text-[#65758B] capitalize">
+            <MdPhoneIphone className="w-4 h-4 text-[#2b3674] mb-1" />
+            <span className="text-xs text-[#2b3674] capitalize">
               {metrics.phoneDetection || "No"}
             </span>
           </div>

@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { DataTable } from "../components/ui/DataTable";
-import { Modal } from "../components/ui/Modal";
 import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
 import { Search } from "../components/ui/Search";
 import {
   FiPlus,
@@ -10,6 +8,10 @@ import {
   FiTrash2,
   FiEye,
 } from "react-icons/fi";
+import { StudentsModals } from "../components/students/StudentsModals";
+import { MdEdit } from "react-icons/md";
+import { RiDeleteBin6Fill } from "react-icons/ri";
+
 
 const initialStudents = [
   {
@@ -172,7 +174,7 @@ export function Students() {
       width: 250,
       render: (text, record) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4318ff] text-white text-xs font-semibold">
             {record.name
               .split(" ")
               .map((n) => n[0])
@@ -180,7 +182,7 @@ export function Students() {
               .toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-900">{record.name}</p>
+            <p className="text-sm font-medium text-[#2b3674]">{record.name}</p>
           </div>
         </div>
       ),
@@ -190,14 +192,14 @@ export function Students() {
       dataIndex: "rollNumber",
       key: "rollNumber",
       width: 150,
-      render: (value) => <span className="text-slate-600">{value}</span>,
+      render: (value) => <span className="text-[#2b3674]">{value}</span>,
     },
     {
       title: "CLASS",
       dataIndex: "className",
       key: "className",
       width: 120,
-      render: (value) => <span className="text-slate-600">{value}</span>,
+      render: (value) => <span className="text-[#2b3674]">{value}</span>,
     },
     {
       title: "EMAIL",
@@ -205,7 +207,7 @@ export function Students() {
       key: "email",
       width: 150,
       render: (value) => (
-        <span className="text-slate-600 text-xs sm:text-sm">{value}</span>
+        <span className="text-[#2b3674] text-xs sm:text-sm">{value}</span>
       ),
     },
     {
@@ -214,7 +216,7 @@ export function Students() {
       key: "studentId",
       width: 60,
       render: (value) => (
-        <span className="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-700">
+        <span className="inline-flex items-center  bg-[#f4f7ff] px-3 py-1 text-[11px] font-medium text-[#2b3674]">
           {value}
         </span>
       ),
@@ -225,32 +227,32 @@ export function Students() {
       align: "center",
       width: 50,
       render: (_, record) => (
-        <div className="flex justify-end gap-3 text-slate-400">
+        <div className="flex justify-center">
           <button
             type="button"
-            className="hover:text-blue-500"
+            className="flex h-8 w-8 items-center justify-center "
             aria-label={`Edit ${record.name}`}
             onClick={() => handleEdit(record)}
           >
-            <FiEdit2 className="w-4 h-4" />
+            <MdEdit className="w-5 h-5 text-[#FFD700]" />
           </button>
           <button
             type="button"
-            className="hover:text-rose-500"
+            className="flex h-8 w-8 items-center justify-center"
             aria-label={`Delete ${record.name}`}
             onClick={() =>
               setStudents((prev) => prev.filter((s) => s.key !== record.key))
             }
           >
-            <FiTrash2 className="w-4 h-4" />
+            <RiDeleteBin6Fill className="w-5 h-5 text-red-500" />
           </button>
           <button
             type="button"
-            className="hover:text-slate-600"
+            className="text-[#4318ff] ml-1"
             aria-label={`View submitted papers for ${record.name}`}
             onClick={() => handleViewSubmitted(record)}
           >
-            <FiEye className="w-4 h-4" />
+            <FiEye className="w-5 h-5 text-[#4318ff]" />
           </button>
         </div>
       ),
@@ -259,25 +261,30 @@ export function Students() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Left: search at table start */}
+        <div className="w-full sm:w-auto">
           <Search
             placeholder="Search students by name, roll number, or class..."
             className="sm:w-72"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+
+        {/* Right: actions */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <Button
-            className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            mode="outline-primary"
             onClick={() => console.log("Import clicked")}
           >
             Import
           </Button>
           <Button
             type="primary"
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-[#4318ff] hover:bg-[#4318ff]"
             onClick={() => setIsModalOpen(true)}
-            icon={<FiPlus />}
+            icon={<FiPlus color="#fff" />}
           >
             Add Student
           </Button>
@@ -286,129 +293,19 @@ export function Students() {
 
       <DataTable columns={columns} dataSource={filteredStudents} />
 
-      <Modal
-        open={isModalOpen}
-        onCancel={() => {
-          setIsModalOpen(false);
-          setEditingKey(null);
-          setFormValues({ name: "", rollNumber: "", className: "", email: "" });
-        }}
-        title={editingKey ? "Edit Student" : "Add Student"}
-      >
-        <form onSubmit={handleAddStudent} className="space-y-4">
-          <Input
-            label="Name *"
-            placeholder="Enter student name"
-            value={formValues.name}
-            onChange={(e) =>
-              setFormValues((v) => ({ ...v, name: e.target.value }))
-            }
-          />
-          <Input
-            label="Roll Number *"
-            placeholder="Enter roll number"
-            value={formValues.rollNumber}
-            onChange={(e) =>
-              setFormValues((v) => ({ ...v, rollNumber: e.target.value }))
-            }
-          />
-          <Input
-            label="Class *"
-            placeholder="e.g., Class 12A"
-            value={formValues.className}
-            onChange={(e) =>
-              setFormValues((v) => ({ ...v, className: e.target.value }))
-            }
-          />
-          <Input
-            label="Email (optional)"
-            type="email"
-            placeholder="student@example.com"
-            value={formValues.email}
-            onChange={(e) =>
-              setFormValues((v) => ({ ...v, email: e.target.value }))
-            }
-          />
-
-          <div className="mt-2 flex justify-end gap-2 pt-2">
-            <Button
-              className="bg-slate-50 text-slate-700 hover:bg-slate-100"
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingKey(null);
-                setFormValues({
-                  name: "",
-                  rollNumber: "",
-                  className: "",
-                  email: "",
-                });
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="primary" htmlType="submit">
-              {editingKey ? "Save Changes" : "Add Student"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
-        open={isSubmittedModalOpen}
-        onCancel={() => setIsSubmittedModalOpen(false)}
-        title={
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-slate-900">
-              Submitted Papers
-            </span>
-            {submittedStudent ? (
-              <span className="text-xs text-slate-500">
-                {submittedStudent.name} ({submittedStudent.rollNumber})
-              </span>
-            ) : null}
-          </div>
-        }
-      >
-        <div className="space-y-3">
-          {submittedPapers.map((paper) => (
-            <div
-              key={paper.key}
-              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
-                  <FiEye className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {paper.title}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {paper.subject} • {paper.dateTime}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right text-slate-900">
-                <p className="text-sm font-semibold">
-                  {paper.score}
-                  <span className="text-[11px] font-normal text-slate-500">
-                    /{paper.total}
-                  </span>
-                </p>
-                <p className="text-[11px] text-emerald-500">{paper.percent}</p>
-              </div>
-            </div>
-          ))}
-          <div className="pt-2">
-            <Button
-              className="w-full bg-slate-100 text-slate-700 hover:bg-slate-200"
-              onClick={() => setIsSubmittedModalOpen(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <StudentsModals
+        isModalOpen={isModalOpen}
+        setIsModalOpen={setIsModalOpen}
+        editingKey={editingKey}
+        setEditingKey={setEditingKey}
+        formValues={formValues}
+        setFormValues={setFormValues}
+        handleAddStudent={handleAddStudent}
+        isSubmittedModalOpen={isSubmittedModalOpen}
+        setIsSubmittedModalOpen={setIsSubmittedModalOpen}
+        submittedStudent={submittedStudent}
+        submittedPapers={submittedPapers}
+      />
     </div>
   );
 }

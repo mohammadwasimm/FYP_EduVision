@@ -42,14 +42,14 @@ export function Sidebar({ activeKey, onNavigate }) {
               type="button"
               onClick={() => onNavigate(item.key)}
               className={[
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition ",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-[14px] font-medium transition ",
                 isActive
-                  ? "bg-white/90 text-[#1a1f40] shadow-sm"
+                  ? "bg-white/90 text-[#4318ff] shadow-sm"
                   : "text-slate-300 hover:bg-[#1a1f40] hover:text-white",
               ].join(" ")}
             >
               <span className="h-5 w-5 flex items-center justify-center">
-                <Icon className={`w-5 h-5 ${isActive ? "text-[#1a1f40]" : "text-slate-300"}`} />
+                <Icon className={`w-5 h-5 ${isActive ? "text-[#4318ff]" : "text-slate-300"}`} />
               </span>
               <span className="text-left flex-1">{item.label}</span>
             </button>
@@ -60,11 +60,11 @@ export function Sidebar({ activeKey, onNavigate }) {
       <div className="mt-auto px-4 py-4">
         <button
           type="button"
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-rose-300 hover:bg-slate-900 transition"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-[#e31a1a]  hover:bg-slate-900 transition"
           onClick={() => onNavigate("logout")}
         >
           <span className="h-5 w-5 flex items-center justify-center">
-            <FiLogOut className="text-rose-400 w-5 h-5" />
+            <FiLogOut className="text-[#e31a1a] w-5 h-5" />
           </span>
           Logout
         </button>
