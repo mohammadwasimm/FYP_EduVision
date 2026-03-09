@@ -1,0 +1,37 @@
+/* Centralized color variables for the app. */
+:root {
+  /* Primary palette */
+  --color-primary: #4318ff;
+  --color-primary-50: #f4f7ff;
+
+  /* Text / surface */
+  --color-text: #2b3674;
+  --color-bg: #f1f5f9;
+  --color-f1f5f980: #F1F5F980;
+  --color-surface: #ffffff;
+
+  /* UI / inputs */
+  --color-input-bg: #F9FAFB;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-border: #e2e8f0;
+
+  /* Muted / helper */
+  --color-muted: #a3aed0;
+  --color-e2e8f0: #e2e8f0;
+  --color-dark: #1a1f40;
+
+  /* Status / semantic */
+  --color-a3aed0: #a3aed0;
+  --color-danger: #dc2626;
+  --color-gold: #FFD700;
+
+  /* Other (with alpha where used) */
+  --color-pill-scheduled: #ffb54733; /* used as a translucent background */
+}
+
+/* Utility aliases for convenience */
+.theme-colors {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}

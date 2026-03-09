@@ -13,7 +13,7 @@ export function SummaryCards({ stats = {} }) {
     {
       label: "Total Live",
       value: totalLive,
-      color: "text-[#2b3674]",
+      color: "text-[var(--color-text)]",
     },
     {
       label: "Normal",
@@ -37,7 +37,7 @@ export function SummaryCards({ stats = {} }) {
       {cards.map((card) => (
         <Card key={card.label} className="border-slate-200">
           <CardBody>
-            <p className="mt-1 text-xs text-[#2b3674]">{card.label}</p>
+            <p className="mt-1 text-xs text-[var(--color-text)]">{card.label}</p>
 
             <p className={`text-2xl font-semibold mt-2 ${card.color}`}>
               {card.value}

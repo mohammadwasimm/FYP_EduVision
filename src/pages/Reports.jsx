@@ -152,10 +152,10 @@ export function Reports() {
       key: "student",
       render: (_text, record) => (
         <div>
-          <p className="text-sm font-medium text-[#2b3674]">
+          <p className="text-sm font-medium text-[var(--color-text)]">
             {record.studentName}
           </p>
-          <p className="text-xs text-[#2b3674]">{record.rollNumber}</p>
+          <p className="text-xs text-[var(--color-text)]">{record.rollNumber}</p>
         </div>
       ),
     },
@@ -165,8 +165,8 @@ export function Reports() {
       key: "exam",
       render: (_text, record) => (
         <div>
-          <p className="text-sm font-medium text-[#2b3674]">{record.exam}</p>
-          <p className="text-xs text-[#2b3674]">{record.subject}</p>
+          <p className="text-sm font-medium text-[var(--color-text)]">{record.exam}</p>
+          <p className="text-xs text-[var(--color-text)]">{record.subject}</p>
         </div>
       ),
     },
@@ -175,7 +175,7 @@ export function Reports() {
       dataIndex: "cheatingType",
       key: "cheatingType",
       render: (text) => (
-        <span className="text-sm text-[#2b3674]">{text}</span>
+  <span className="text-sm text-[var(--color-text)]">{text}</span>
       ),
     },
     {
@@ -183,7 +183,7 @@ export function Reports() {
       dataIndex: "timestamp",
       key: "timestamp",
       render: (text) => (
-        <span className="text-sm text-[#2b3674]">{text}</span>
+  <span className="text-sm text-[var(--color-text)]">{text}</span>
       ),
     },
     {
@@ -201,13 +201,13 @@ export function Reports() {
       render: (_text, record) => (
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-xs font-medium text-[#4318ff]"
+          className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-primary)]"
           onClick={() => {
             setSelectedIncident(record);
             setIsEvidenceOpen(true);
           }}
         >
-          <FiEye className="w-3 h-3 text-[#4318ff]" />
+          <FiEye className="w-3 h-3 text-[var(--color-primary)]" />
           View
         </button>
       ),
@@ -275,10 +275,10 @@ export function Reports() {
               </span>
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-semibold text-[#2b3674]">
+              <p className="text-2xl font-semibold text-[var(--color-text)]">
                 {stats.total}
               </p>
-              <p className="mt-1 text-sm text-[#2b3674]">Total Incidents</p>
+              <p className="mt-1 text-sm text-[var(--color-text)]">Total Incidents</p>
             </div>
           </CardBody>
         </Card>
@@ -298,7 +298,7 @@ export function Reports() {
               <p className="text-2xl font-semibold text-rose-500">
                 {stats.high}
               </p>
-              <p className="mt-1 text-sm text-[#2b3674]">High Severity</p>
+              <p className="mt-1 text-sm text-[var(--color-text)]">High Severity</p>
             </div>
           </CardBody>
         </Card>
@@ -318,7 +318,7 @@ export function Reports() {
               <p className="text-2xl font-semibold text-amber-500">
                 {stats.medium}
               </p>
-              <p className="mt-1 text-sm text-[#2b3674]">Medium Severity</p>
+              <p className="mt-1 text-sm text-[var(--color-text)]">Medium Severity</p>
             </div>
           </CardBody>
         </Card>

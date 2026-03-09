@@ -1,14 +1,6 @@
 import React from "react";
 import { Button as AntButton } from "antd";
 
-/**
- * Common Button wrapper.
- *
- * Props:
- * - type: "default" | "primary" | "link" (maps to Ant Design types)
- * - mode: visual style on top of type, e.g. "outline-primary"
- *    - "outline-primary" → white bg, #4318ff border + text
- */
 export function Button({
   children,
   className = "",

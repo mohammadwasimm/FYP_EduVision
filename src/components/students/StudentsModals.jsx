@@ -26,7 +26,7 @@ export function StudentsModals({
           setFormValues({ name: "", rollNumber: "", className: "", email: "" });
         }}
         title={
-          <span className="text-[18px] font-semibold text-[#2b3674]">
+          <span className="text-[18px] font-semibold text-[var(--color-text)]">
             {editingKey ? "Edit Student" : "Add Student"}
           </span>
         }
@@ -94,11 +94,9 @@ export function StudentsModals({
         onCancel={() => setIsSubmittedModalOpen(false)}
         title={
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-[#2b3674]">
-              Submitted Papers
-            </span>
+            <span className="text-sm font-semibold text-[var(--color-text)]">Submitted Papers</span>
             {submittedStudent ? (
-              <span className="text-xs text-[#2b3674] mt-1">
+              <span className="text-xs text-[var(--color-text)] mt-1">
                 {submittedStudent.name} ({submittedStudent.rollNumber})
               </span>
             ) : null}
@@ -112,7 +110,7 @@ export function StudentsModals({
               className="flex items-center justify-between rounded-2xl bg-white px-4 py-3"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4318ff] text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-primary)] text-[var(--color-white)]">
                   {/* simple initials from subject */}
                   <span className="text-[12px] font-semibold">
                     {paper.subject
@@ -123,15 +121,15 @@ export function StudentsModals({
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#2b3674]">
+          <p className="text-sm font-semibold text-[var(--color-text)]">
                     {paper.title}
                   </p>
-                  <p className="text-[12px] text-[#2b3674]">
+          <p className="text-[12px] text-[var(--color-text)]">
                     {paper.subject} • {paper.dateTime}
                   </p>
                 </div>
-              </div>
-              <div className="text-right text-[#2b3674]">
+        </div>
+        <div className="text-right text-[var(--color-text)]">
                 <p className="text-sm font-semibold">
                   {paper.score}
                   <span className="text-[11px] font-normal text-slate-500">

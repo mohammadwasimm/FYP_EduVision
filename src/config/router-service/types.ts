@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 export type RouteKey =
   | "dashboard"
   | "students"
+  | "student-enroll"
   | "create-paper"
   | "live-monitoring"
   | "reports"

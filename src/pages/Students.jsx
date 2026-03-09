@@ -174,7 +174,7 @@ export function Students() {
       width: 250,
       render: (text, record) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4318ff] text-white text-xs font-semibold">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-primary)] text-[var(--color-white)] text-xs font-semibold">
             {record.name
               .split(" ")
               .map((n) => n[0])
@@ -182,7 +182,7 @@ export function Students() {
               .toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-[#2b3674]">{record.name}</p>
+            <p className="text-sm font-medium text-[var(--color-text)]">{record.name}</p>
           </div>
         </div>
       ),
@@ -192,14 +192,14 @@ export function Students() {
       dataIndex: "rollNumber",
       key: "rollNumber",
       width: 150,
-      render: (value) => <span className="text-[#2b3674]">{value}</span>,
+  render: (value) => <span className="text-[var(--color-text)]">{value}</span>,
     },
     {
       title: "CLASS",
       dataIndex: "className",
       key: "className",
       width: 120,
-      render: (value) => <span className="text-[#2b3674]">{value}</span>,
+  render: (value) => <span className="text-[var(--color-text)]">{value}</span>,
     },
     {
       title: "EMAIL",
@@ -207,7 +207,7 @@ export function Students() {
       key: "email",
       width: 150,
       render: (value) => (
-        <span className="text-[#2b3674] text-xs sm:text-sm">{value}</span>
+  <span className="text-[var(--color-text)] text-xs sm:text-sm">{value}</span>
       ),
     },
     {
@@ -216,7 +216,7 @@ export function Students() {
       key: "studentId",
       width: 60,
       render: (value) => (
-        <span className="inline-flex items-center  bg-[#f4f7ff] px-3 py-1 text-[11px] font-medium text-[#2b3674]">
+  <span className="inline-flex items-center  bg-[var(--color-primary-50)] px-3 py-1 text-[11px] font-medium text-[var(--color-text)]">
           {value}
         </span>
       ),
@@ -234,7 +234,7 @@ export function Students() {
             aria-label={`Edit ${record.name}`}
             onClick={() => handleEdit(record)}
           >
-            <MdEdit className="w-5 h-5 text-[#FFD700]" />
+            <MdEdit className="w-5 h-5 text-[var(--color-gold)]" />
           </button>
           <button
             type="button"
@@ -248,11 +248,11 @@ export function Students() {
           </button>
           <button
             type="button"
-            className="text-[#4318ff] ml-1"
+            className="text-[var(--color-primary)] ml-1"
             aria-label={`View submitted papers for ${record.name}`}
             onClick={() => handleViewSubmitted(record)}
           >
-            <FiEye className="w-5 h-5 text-[#4318ff]" />
+            <FiEye className="w-5 h-5 text-[var(--color-primary)]" />
           </button>
         </div>
       ),
@@ -282,9 +282,9 @@ export function Students() {
           </Button>
           <Button
             type="primary"
-            className="bg-[#4318ff] hover:bg-[#4318ff]"
+            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]"
             onClick={() => setIsModalOpen(true)}
-            icon={<FiPlus color="#fff" />}
+            icon={<FiPlus color="var(--color-white)" />}
           >
             Add Student
           </Button>

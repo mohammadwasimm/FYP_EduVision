@@ -30,40 +30,40 @@ export function Settings() {
       return (
         <Card className="border-slate-200 rounded-[12px] w-full">
           <CardBody className="space-y-2">
-            <h2 className="text-base font-semibold text-[#2b3674]">
+            <h2 className="text-base font-semibold text-[var(--color-text)]">
               Password Settings
             </h2>
-            <p className="text-sm text-[#2b3674]">
+            <p className="text-sm text-[var(--color-text)]">
               Configure your account security and password preferences.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-[#2b3674]">
+                <label className="text-xs font-medium text-[var(--color-text)]">
                   Current Password
                 </label>
                 <input
                   type="password"
-                  className="w-full h-[45px] rounded-[9px] border border-slate-200 bg-[#F9FAFB] px-3 text-sm outline-none"
+                  className="w-full h-[45px] rounded-[9px] border border-slate-200 bg-[var(--color-input-bg)] px-3 text-sm outline-none"
                   placeholder="Enter current password"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-[#2b3674]">
+                <label className="text-xs font-medium text-[var(--color-text)]">
                   New Password
                 </label>
                 <input
                   type="password"
-                  className="w-full h-[45px] rounded-[9px] border border-slate-200 bg-[#F9FAFB] px-3 text-sm outline-none"
+                  className="w-full h-[45px] rounded-[9px] border border-slate-200 bg-[var(--color-input-bg)] px-3 text-sm outline-none"
                   placeholder="Enter new password"
                 />
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="text-xs font-medium text-[#2b3674]">
+                <label className="text-xs font-medium text-[var(--color-text)]">
                   Confirm New Password
                 </label>
                 <input
                   type="password"
-                  className="w-full h-[45px] rounded-[9px] border border-slate-200 bg-[#F9FAFB] px-3 text-sm outline-none"
+                  className="w-full h-[45px] rounded-[9px] border border-slate-200 bg-[var(--color-input-bg)] px-3 text-sm outline-none"
                   placeholder="Re-enter new password"
                 />
               </div>
@@ -84,17 +84,17 @@ export function Settings() {
       return (
         <Card className="border-slate-200 rounded-[12px] w-full">
           <CardBody className="space-y-6">
-            <h2 className="text-base font-semibold text-[#2b3674]">
+            <h2 className="text-base font-semibold text-[var(--color-text)]">
               Detection Thresholds
             </h2>
 
             {/* Head Movement */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Head Movement Sensitivity
                 </p>
-                <span className="text-xs font-medium text-[#2b3674]">
+                <span className="text-xs font-medium text-[var(--color-text)]">
                   {headMovement}%
                 </span>
               </div>
@@ -103,7 +103,7 @@ export function Settings() {
                 onChange={setHeadMovement}
                 className="text-blue-500"
               />
-              <p className="text-xs text-[#2b3674]">
+              <p className="text-xs text-[var(--color-text)]">
                 Alerts trigger when head movement exceeds this threshold
               </p>
             </div>
@@ -111,15 +111,15 @@ export function Settings() {
             {/* Eye Gaze */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Eye Gaze Sensitivity
                 </p>
-                <span className="text-xs font-medium text-[#2b3674]">
+                <span className="text-xs font-medium text-[var(--color-text)]">
                   {eyeGaze}%
                 </span>
               </div>
               <Slider value={eyeGaze} onChange={setEyeGaze} />
-              <p className="text-xs text-[#2b3674]">
+              <p className="text-xs text-[var(--color-text)]">
                 Alerts trigger when eyes look away for extended periods.
               </p>
             </div>
@@ -127,15 +127,15 @@ export function Settings() {
             {/* Mobile Detection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Mobile Detection Confidence
                 </p>
-                <span className="text-xs font-medium text-[#2b3674]">
+                <span className="text-xs font-medium text-[var(--color-text)]">
                   {mobileConfidence}%
                 </span>
               </div>
               <Slider value={mobileConfidence} onChange={setMobileConfidence} />
-              <p className="text-xs text-[#2b3674]">
+              <p className="text-xs text-[var(--color-text)]">
                 Minimum confidence level to flag mobile phone detection.
               </p>
             </div>
@@ -155,7 +155,7 @@ export function Settings() {
     return (
       <Card className="border-slate-200 rounded-[12px] w-full">
         <CardBody className="space-y-6">
-          <h2 className="text-base font-semibold text-[#2b3674]">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">
             Notification Preferences
           </h2>
 
@@ -163,10 +163,10 @@ export function Settings() {
             {/* Each row */}
             <div className="flex items-center justify-between rounded-[12px] bg-slate-50 px-4 py-4">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Email Alerts
                 </p>
-                <p className="text-xs text-[#2b3674]">
+                <p className="text-xs text-[var(--color-text)]">
                   Receive alerts via email.
                 </p>
               </div>
@@ -178,10 +178,10 @@ export function Settings() {
 
             <div className="flex items-center justify-between rounded-[12px] bg-slate-50 px-4 py-4">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Critical Alerts Only
                 </p>
-                <p className="text-xs text-[#2b3674]">
+                <p className="text-xs text-[var(--color-text)]">
                   Only notify for high-severity incidents.
                 </p>
               </div>
@@ -193,10 +193,10 @@ export function Settings() {
 
             <div className="flex items-center justify-between rounded-[12px] bg-slate-50 px-4 py-4">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Daily Digest
                 </p>
-                <p className="text-xs text-[#2b3674]">
+                <p className="text-xs text-[var(--color-text)]">
                   Receive a summary of all incidents daily.
                 </p>
               </div>
@@ -208,10 +208,10 @@ export function Settings() {
 
             <div className="flex items-center justify-between rounded-[12px] bg-slate-50 px-4 py-4">
               <div className="flex-1">
-                <p className="text-sm font-medium text-[#2b3674]">
+                <p className="text-sm font-medium text-[var(--color-text)]">
                   Sound Alerts
                 </p>
-                <p className="text-xs text-[#2b3674]">
+                <p className="text-xs text-[var(--color-text)]">
                   Play sound for real-time alerts.
                 </p>
               </div>
@@ -250,8 +250,8 @@ export function Settings() {
                 className={[
                   "flex items-center gap-2 px-4 h-[45px] rounded-[9px] text-sm font-medium transition-colors border",
                   isActive
-                    ? "border-[#4318ff] bg-[#4318ff] text-white"
-                    : "border-transparent text-[#2b3674]",
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-white)]"
+                    : "border-transparent text-[var(--color-text)]",
                 ].join(" ")}
               >
                 <Icon className="w-4 h-4" />

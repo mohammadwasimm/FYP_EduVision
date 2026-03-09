@@ -9,15 +9,15 @@ export function Input({ className = "", label, error, ...props }) {
     return (
         <div className="space-y-1 w-full">
             {label && (
-              <label className="text-[14px] font-medium text-[#2b3674]">
+              <label className="text-[14px] font-medium text-[var(--color-text)]">
                 <span>{baseLabel}</span>
                 {hasRequiredMark && (
-                  <span className="ml-0.5 text-[#FF0000]">*</span>
+                  <span className="ml-0.5 text-[var(--color-danger)]">*</span>
                 )}
               </label>
             )}
             <AntInput
-                className={`w-full h-[47px] rounded-lg border border-slate-200 px-3 text-sm outline-none text-[#2b3674] ${className}`}
+                className={`w-full h-[47px] rounded-lg border border-slate-200 px-3 text-sm outline-none text-[var(--color-text)] ${className}`}
                 {...props}
             />
             {error && <p className="text-[11px] text-rose-500 mt-1">{error}</p>}

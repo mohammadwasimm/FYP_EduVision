@@ -7,6 +7,7 @@
 export const ROUTE_ENDPOINTS = {
   dashboard: "/",
   students: "/students",
+  "student-enroll": "/student-enroll",
   "create-paper": "/create-paper",
   "live-monitoring": "/live-monitoring",
   reports: "/reports",

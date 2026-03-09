@@ -101,14 +101,14 @@ export function CreatePaper() {
         dataIndex: "name",
         key: "name",
         render: (text) => (
-          <span className="text-sm font-medium text-[#2b3674]">{text}</span>
+          <span className="text-sm font-medium text-[var(--color-text)]">{text}</span>
         ),
       },
       {
         title: "ROLL NUMBER",
         dataIndex: "rollNumber",
         key: "rollNumber",
-        render: (text) => <span className="text-[#2b3674]">{text}</span>,
+  render: (text) => <span className="text-[var(--color-text)]">{text}</span>,
       },
       {
         title: "STUDENT ID",
@@ -127,7 +127,7 @@ export function CreatePaper() {
         render: (link) => (
           <button
             type="button"
-            className="max-w-xs truncate text-left text-xs text-[#4318ff] hover:underline"
+            className="max-w-xs truncate text-left text-xs text-[var(--color-primary)] hover:underline"
             onClick={() => navigator.clipboard?.writeText(link)}
           >
             {link}
@@ -139,7 +139,7 @@ export function CreatePaper() {
         dataIndex: "scheduled",
         key: "scheduled",
         render: (text) => (
-          <span className="inline-flex items-center gap-1 text-xs text-[#2b3674]">
+          <span className="inline-flex items-center gap-1 text-xs text-[var(--color-text)]">
             <FiClock className="w-3 h-3" />
             {text}
           </span>
@@ -168,7 +168,7 @@ export function CreatePaper() {
       {/* Paper details */}
       <Card className="border-slate-200">
         <CardBody className="space-y-4">
-          <h2 className="text-sm font-semibold text-[#2b3674]">
+          <h2 className="text-sm font-semibold text-[var(--color-text)]">
             Paper Details
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -224,17 +224,17 @@ export function CreatePaper() {
       {/* Upload section */}
       <Card className="border-slate-200">
         <CardBody className="space-y-4">
-          <h2 className="text-sm font-semibold text-[#2b3674]">
+          <h2 className="text-sm font-semibold text-[var(--color-text)]">
             Upload Paper (MCQs)
           </h2>
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
               <FiUploadCloud className="w-6 h-6" />
             </div>
-            <p className="mt-3 text-sm font-medium text-[#2b3674]">
+            <p className="mt-3 text-sm font-medium text-[var(--color-text)]">
               Upload your MCQs CSV file
             </p>
-            <p className="mt-1 text-xs text-[#2b3674]">
+            <p className="mt-1 text-xs text-[var(--color-text)]">
               Format: Question, Option A, Option B, Option C, Option D, Correct
               Answer
             </p>
@@ -252,12 +252,12 @@ export function CreatePaper() {
       <Card className="border-slate-200">
         <CardBody className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#2b3674]">
+            <h2 className="text-sm font-semibold text-[var(--color-text)]">
               Select Students *
             </h2>
             <button
               type="button"
-              className="text-xs font-medium text-[#4318ff] hover:text-[#4318ff]"
+              className="text-xs font-medium text-[var(--color-primary)] hover:text-[var(--color-primary)]"
               onClick={allSelected ? handleDeselectAll : handleSelectAll}
             >
               {allSelected ? "Deselect All" : "Select All"}
@@ -275,7 +275,7 @@ export function CreatePaper() {
                   className={[
                     "flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition cursor-pointer",
                     checked
-                      ? "border-[#4318ff] bg-[#f4f7ff]"
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-50)]"
                       : "border-slate-200 bg-white hover:bg-slate-50",
                   ].join(" ")}
                 >
@@ -287,16 +287,16 @@ export function CreatePaper() {
                     }}
                   />
                   <div>
-                    <p className="text-sm font-medium text-[#2b3674]">
+                    <p className="text-sm font-medium text-[var(--color-text)]">
                       {s.name}
                     </p>
-                    <p className="text-[11px] text-[#2b3674]">{s.rollNumber}</p>
+                    <p className="text-[11px] text-[var(--color-text)]">{s.rollNumber}</p>
                   </div>
                 </button>
               );
             })}
           </div>
-          <p className="text-[11px] text-[#2b3674]">
+          <p className="text-[11px] text-[var(--color-text)]">
             {selectedKeys.length} student(s) selected
           </p>
         </CardBody>
@@ -324,7 +324,7 @@ export function CreatePaper() {
       {generatedLinks.length > 0 && (
         <Card className="border-slate-200">
           <CardBody className="space-y-4">
-            <h2 className="text-sm font-semibold text-[#2b3674]">
+              <h2 className="text-sm font-semibold text-[var(--color-text)]">
               Generated Exam Links
             </h2>
             <DataTable

@@ -7,6 +7,7 @@ import {
   FiBarChart2,
   FiSettings,
   FiLogOut,
+  FiUserPlus,
 } from "react-icons/fi";
 import { PiGraduationCapFill } from "react-icons/pi";
 
@@ -17,11 +18,13 @@ const nav = [
   { key: "live-monitoring", label: "Live Monitoring", icon: FiMonitor },
   { key: "reports", label: "Reports", icon: FiBarChart2 },
   { key: "settings", label: "Settings", icon: FiSettings },
+  { key: "student-enroll", label: "Student Enroll", icon: FiUserPlus },
+
 ];
 
 export function Sidebar({ activeKey, onNavigate }) {
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col bg-[#1a1f40] text-white border-r border-slate-800">
+  <aside className="hidden md:flex md:w-64 md:flex-col bg-[var(--color-dark)] text-[var(--color-white)] border-r border-slate-800">
       <div className="flex items-center gap-3 px-5 py-5">
         <div className="flex items-center justify-center">
           <PiGraduationCapFill className="text-white w-6 h-6" />
@@ -44,12 +47,12 @@ export function Sidebar({ activeKey, onNavigate }) {
               className={[
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-[14px] font-medium transition ",
                 isActive
-                  ? "bg-white/90 text-[#4318ff] shadow-sm"
-                  : "text-slate-300 hover:bg-[#1a1f40] hover:text-white",
+                  ? "bg-white/90 text-[var(--color-primary)] shadow-sm"
+                  : "text-slate-300 hover:bg-[var(--color-dark)] hover:text-[var(--color-white)]",
               ].join(" ")}
             >
               <span className="h-5 w-5 flex items-center justify-center">
-                <Icon className={`w-5 h-5 ${isActive ? "text-[#4318ff]" : "text-slate-300"}`} />
+                <Icon className={`w-5 h-5 ${isActive ? "text-[var(--color-primary)]" : "text-slate-300"}`} />
               </span>
               <span className="text-left flex-1">{item.label}</span>
             </button>
@@ -60,11 +63,11 @@ export function Sidebar({ activeKey, onNavigate }) {
       <div className="mt-auto px-4 py-4">
         <button
           type="button"
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-[#e31a1a]  hover:bg-slate-900 transition"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold text-[var(--color-danger)]  hover:bg-slate-900 transition"
           onClick={() => onNavigate("logout")}
         >
           <span className="h-5 w-5 flex items-center justify-center">
-            <FiLogOut className="text-[#e31a1a] w-5 h-5" />
+            <FiLogOut className="text-[var(--color-danger)] w-5 h-5" />
           </span>
           Logout
         </button>

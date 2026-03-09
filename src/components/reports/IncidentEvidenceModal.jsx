@@ -15,10 +15,10 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h2 className="text-lg font-semibold text-[#2b3674]">
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">
             Incident Evidence
           </h2>
-          <p className="text-sm text-[#2b3674] mt-1">
+          <p className="text-sm text-[var(--color-text)] mt-1">
             {incident.studentName} • {incident.timestamp}
           </p>
         </div>
@@ -29,10 +29,10 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
             <div className="h-14 w-14 rounded-full bg-white flex items-center justify-center">
               <IoWarningOutline className="w-7 h-7 text-slate-400" />
             </div>
-            <p className="text-sm font-medium text-[#2b3674]">
+            <p className="text-sm font-medium text-[var(--color-text)]">
               Evidence Preview
             </p>
-            <p className="text-xs text-[#2b3674]">{incident.evidenceFile}</p>
+            <p className="text-xs text-[var(--color-text)]">{incident.evidenceFile}</p>
           </CardBody>
         </Card>
 
@@ -40,15 +40,15 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-[#2b3674] mb-1">Cheating Type</p>
-              <p className="text-sm font-semibold text-[#2b3674]">
+              <p className="text-xs text-[var(--color-text)] mb-1">Cheating Type</p>
+              <p className="text-sm font-semibold text-[var(--color-text)]">
                 {incident.cheatingType}
               </p>
             </CardBody>
           </Card>
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-[#2b3674] mb-1">Severity</p>
+              <p className="text-xs text-[var(--color-text)] mb-1">Severity</p>
               <p
                 className={`text-sm font-semibold ${
                   getSeverityTone(incident.severity).className
@@ -60,16 +60,16 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
           </Card>
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-[#2b3674] mb-1">Exam</p>
-              <p className="text-sm font-semibold text-[#2b3674]">
+              <p className="text-xs text-[var(--color-text)] mb-1">Exam</p>
+              <p className="text-sm font-semibold text-[var(--color-text)]">
                 {incident.exam}
               </p>
             </CardBody>
           </Card>
           <Card className="border-0 bg-slate-50 rounded-[12px]">
             <CardBody className="py-4">
-              <p className="text-xs text-[#2b3674] mb-1">Subject</p>
-              <p className="text-sm font-semibold text-[#2b3674]">
+              <p className="text-xs text-[var(--color-text)] mb-1">Subject</p>
+              <p className="text-sm font-semibold text-[var(--color-text)]">
                 {incident.subject}
               </p>
             </CardBody>

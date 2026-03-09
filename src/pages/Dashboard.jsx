@@ -35,8 +35,8 @@ function StatCard({
           ) : null}
         </div>
         <div>
-          <p className="text-2xl font-semibold text-[#2b3674]">{value}</p>
-          <p className="mt-1 text-sm text-[#2b3674]">{label}</p>
+          <p className="text-2xl font-semibold text-[var(--color-text)]">{value}</p>
+          <p className="mt-1 text-sm text-[var(--color-text)]">{label}</p>
         </div>
       </CardBody>
     </Card>
@@ -91,12 +91,12 @@ export function Dashboard() {
         <Card className="xl:col-span-2 border-slate-200">
           <CardBody>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#2b3674]">
+              <h2 className="text-sm font-semibold text-[var(--color-text)]">
                 Recent Exams
               </h2>
               <Button
                 type="link"
-                className="text-link-4318ff font-medium"
+                className="text-[var(--color-primary)] font-medium"
                 onClick={() => navigate(ROUTE_ENDPOINTS["live-monitoring"])}
               >
                 View all
@@ -111,7 +111,7 @@ export function Dashboard() {
                     dataIndex: "name",
                     key: "name",
                     render: (text) => (
-                      <span className="font-medium text-[#2b3674]">{text}</span>
+                      <span className="font-medium text-[var(--color-text)]">{text}</span>
                     ),
                   },
                   {
@@ -119,7 +119,7 @@ export function Dashboard() {
                     dataIndex: "subject",
                     key: "subject",
                     render: (text) => (
-                      <span className="text-[#2b3674]">{text}</span>
+                      <span className="text-[var(--color-text)]">{text}</span>
                     ),
                   },
                   {
@@ -128,7 +128,7 @@ export function Dashboard() {
                     key: "students",
                     align: "center",
                     render: (value) => (
-                      <span className="text-[#2b3674]">{value}</span>
+                      <span className="text-[var(--color-text)]">{value}</span>
                     ),
                   },
                   {
@@ -136,7 +136,7 @@ export function Dashboard() {
                     dataIndex: "date",
                     key: "date",
                     render: (text) => (
-                      <span className="text-[#2b3674]">{text}</span>
+                      <span className="text-[var(--color-text)]">{text}</span>
                     ),
                   },
                   {
@@ -220,7 +220,7 @@ export function Dashboard() {
         <Card className="border-slate-200">
           <CardBody>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#2b3674]">
+              <h2 className="text-sm font-semibold text-[var(--color-text)]">
                 Live Alerts
               </h2>
               <Button
@@ -274,10 +274,10 @@ export function Dashboard() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-[#2b3674]">
+              <p className="text-sm font-semibold text-[var(--color-text)]">
                         {a.name}
                       </p>
-                      <p className="text-[11px] text-[#2b3674]">{a.room}</p>
+                <p className="text-[11px] text-[var(--color-text)]">{a.room}</p>
                     </div>
                     <span
                       className={[
@@ -290,7 +290,7 @@ export function Dashboard() {
                       {a.tag}
                     </span>
                   </div>
-                  <p className="mt-2 text-[11px] text-[#2b3674]">{a.ago}</p>
+                  <p className="mt-2 text-[11px] text-[var(--color-text)]">{a.ago}</p>
                 </div>
               ))}
             </div>
@@ -339,12 +339,12 @@ export function Dashboard() {
               </div>
 
               {/* Row 2: title */}
-              <p className="text-sm font-semibold text-[#2b3674]">
+              <p className="text-sm font-semibold text-[var(--color-text)]">
                 {c.title}
               </p>
 
               {/* Row 3: description */}
-              <p className="text-xs text-[#2b3674]">{c.desc}</p>
+              <p className="text-xs text-[var(--color-text)]">{c.desc}</p>
             </CardBody>
           </Card>
         ))}

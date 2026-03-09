@@ -1,5 +1,6 @@
 import { Dashboard } from "../../../pages/Dashboard";
 import { Students } from "../../../pages/Students";
+import { StudentEnroll } from "../../../pages/StudentEnroll";
 import { CreatePaper } from "../../../pages/CreatePaper";
 import { LiveMonitoring } from "../../../pages/LiveMonitoring";
 import { Reports } from "../../../pages/Reports";
@@ -26,6 +27,13 @@ export const sidebarRoutes: SidebarRouteConfig[] = [
     path: ROUTE_ENDPOINTS.students,
     title: "Students",
     component: Students,
+    isPrivate: true,
+  },
+  {
+    key: "student-enroll",
+    path: ROUTE_ENDPOINTS["student-enroll"],
+    title: "Student Enroll",
+    component: StudentEnroll,
     isPrivate: true,
   },
   {
