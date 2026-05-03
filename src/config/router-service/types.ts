@@ -2,9 +2,15 @@ import type { ComponentType } from "react";
 
 export type RouteKey =
   | "dashboard"
+  | "landing"
+  | "admin-signup"
+  | "admin-signin"
+  | "admin-dashboard"
+  | "student-signup"
   | "students"
   | "student-enroll"
   | "create-paper"
+  | "generated-paper"
   | "live-monitoring"
   | "reports"
   | "settings"

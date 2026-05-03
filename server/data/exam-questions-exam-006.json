@@ -1,0 +1,79 @@
+{
+  "questions": [
+    {
+      "id": "exam-006-q-1",
+      "question": "What is the SI unit of force?",
+      "options": [
+        "Joule",
+        "Newton",
+        "Pascal",
+        "Watt"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-006-q-3",
+      "question": "What is the speed of light?",
+      "options": [
+        "3 x 10^8 m/s",
+        "1.5 x 10^8 m/s",
+        "3 x 10^6 m/s",
+        "1 x 10^7 m/s"
+      ],
+      "correct": 0,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-006-q-5",
+      "question": "Who formulated the laws of motion?",
+      "options": [
+        "Einstein",
+        "Newton",
+        "Galileo",
+        "Tesla"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-006-q-7",
+      "question": "What is the unit of electric current?",
+      "options": [
+        "Volt",
+        "Ampere",
+        "Ohm",
+        "Watt"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-006-q-9",
+      "question": "What type of energy is stored in a stretched spring?",
+      "options": [
+        "Kinetic energy",
+        "Thermal energy",
+        "Potential energy",
+        "Chemical energy"
+      ],
+      "correct": 2,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    }
+  ]
+}

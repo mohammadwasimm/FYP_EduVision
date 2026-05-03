@@ -1,46 +1,28 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardBody } from "../components/ui/Card";
 import { DataTable } from "../components/ui/DataTable";
 import { Input } from "../components/ui/Input";
 import { Dropdown } from "../components/ui/Dropdown";
 import { Checkbox } from "../components/ui/Checkbox";
 import { Button } from "../components/ui/Button";
-import { FiClock, FiCopy, FiUploadCloud } from "react-icons/fi";
+import { FiClock, FiCopy, FiUploadCloud, FiExternalLink } from "react-icons/fi";
+import { Pagination } from 'antd';
+import { toast } from '../utils/react-toastify-shim';
+import { ROUTE_ENDPOINTS } from "../config/router-service/utils/endpoints";
+import { dashboardApi } from '../store/apiClients/dashboardClient';
 
-const baseStudents = [
-  {
-    key: "stu-001",
-    name: "John Doe",
-    rollNumber: "R001",
-    studentId: "STU001",
-  },
-  {
-    key: "stu-002",
-    name: "Jane Smith",
-    rollNumber: "R002",
-    studentId: "STU002",
-  },
-  {
-    key: "stu-003",
-    name: "Mike Johnson",
-    rollNumber: "R003",
-    studentId: "STU003",
-  },
-  {
-    key: "stu-004",
-    name: "Sarah Wilson",
-    rollNumber: "R004",
-    studentId: "STU004",
-  },
-  {
-    key: "stu-005",
-    name: "Tom Brown",
-    rollNumber: "R005",
-    studentId: "STU005",
-  },
-];
+import { fetchStudents } from "./students/stores/actions";
+import { examsApi } from '../store/apiClients/examsClient';
+
+/** Converts a raw DB exam link into the real URL a student can open in their browser */
+function toStudentUrl(rawLink) {
+  const base = window.location.origin; // e.g. http://localhost:3000
+  return `${base}/student-enroll?examLink=${encodeURIComponent(rawLink)}`;
+}
 
 export function CreatePaper() {
+  const navigate = useNavigate();
   const [paper, setPaper] = useState({
     name: "",
     subject: "",
@@ -49,49 +31,223 @@ export function CreatePaper() {
   });
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [generatedLinks, setGeneratedLinks] = useState([]);
+  const [selectedStudentsMap, setSelectedStudentsMap] = useState({});
+  const [students, setStudents] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [selectedCsvFile, setSelectedCsvFile] = useState(null);
+  const [csvText, setCsvText] = useState("");
+  const [creatingPaper, setCreatingPaper] = useState(false);
+  const [subjectOptions, setSubjectOptions] = useState([]);
+  const fileInputRef = useRef(null);
 
-  const allSelected = selectedKeys.length === baseStudents.length;
+  // Default subjects shown when the API has no data yet
+  const DEFAULT_SUBJECTS = ['Mathematics','Physics','Chemistry','Biology','English','History','Geography','Computer Science'];
+
+  // Load subjects from DB on mount
+  useEffect(() => {
+    dashboardApi.getSubjects()
+      .then(apiSubjects => {
+        // Merge API subjects with defaults, deduplicate, sort
+        const merged = Array.from(new Set([...apiSubjects, ...DEFAULT_SUBJECTS])).sort();
+        setSubjectOptions([{ label: 'Select a subject', value: '' }, ...merged.map(s => ({ label: s, value: s }))]);
+      })
+      .catch(() => {
+        setSubjectOptions([{ label: 'Select a subject', value: '' }, ...DEFAULT_SUBJECTS.map(s => ({ label: s, value: s }))]);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        setLoadingStudents(true);
+        const resp = await fetchStudents({ page, limit });
+        const list = resp && resp.data ? resp.data : (Array.isArray(resp) ? resp : []);
+        if (!mounted) return;
+        setStudents(
+          list.map((s) => ({
+            key: s.id || s.key,
+            name: s.name,
+            rollNumber: s.rollNumber || s['roll-number'] || '',
+            studentId: s.studentId || s['student-id'] || s.id || '',
+          }))
+        );
+  setTotal(resp?.pagination?.totalRecords ?? resp?.pagination?.total ?? resp?.meta?.totalRecords ?? resp?.meta?.total ?? 0);
+      } catch (e) {
+        if (mounted) setStudents([]);
+      } finally {
+        if (mounted) setLoadingStudents(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [page, limit]);
+
+  const allSelected = students.length > 0 && students.every((s) => selectedKeys.includes(s.key));
 
   const toggleStudent = (key) => {
-    setSelectedKeys((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+    setSelectedKeys((prev) => {
+      const exists = prev.includes(key);
+      if (exists) {
+        setSelectedStudentsMap((old) => {
+          const next = { ...old };
+          delete next[key];
+          return next;
+        });
+        return prev.filter((k) => k !== key);
+      }
+
+      const student = students.find((s) => s.key === key);
+      if (student) {
+        setSelectedStudentsMap((old) => ({ ...old, [key]: student }));
+      }
+      return [...prev, key];
+    });
   };
 
   const handleSelectAll = () => {
-    setSelectedKeys(baseStudents.map((s) => s.key));
+    setSelectedKeys((prev) => {
+      const currentPageKeys = students.map((s) => s.key);
+      const merged = Array.from(new Set([...prev, ...currentPageKeys]));
+      return merged;
+    });
+    setSelectedStudentsMap((old) => {
+      const next = { ...old };
+      students.forEach((s) => {
+        next[s.key] = s;
+      });
+      return next;
+    });
   };
 
   const handleDeselectAll = () => {
-    setSelectedKeys([]);
+    const currentPageKeys = new Set(students.map((s) => s.key));
+    setSelectedKeys((prev) => prev.filter((k) => !currentPageKeys.has(k)));
+    setSelectedStudentsMap((old) => {
+      const next = { ...old };
+      currentPageKeys.forEach((k) => {
+        delete next[k];
+      });
+      return next;
+    });
   };
 
   const handleReset = () => {
     setPaper({ name: "", subject: "", date: "", time: "" });
     setSelectedKeys([]);
+    setSelectedStudentsMap({});
     setGeneratedLinks([]);
+    setSelectedCsvFile(null);
+    setCsvText("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const handleCreatePaper = () => {
-    if (!paper.name || !paper.subject || !paper.date || !paper.time) return;
-    if (!selectedKeys.length) return;
+  const handleBrowseCsv = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCsvFileChange = async (event) => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast.error('Please upload a CSV file only.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        toast.error('Selected CSV file is empty.');
+        event.target.value = '';
+        return;
+      }
+      setSelectedCsvFile(file);
+      setCsvText(text);
+      toast.success('CSV file selected successfully.');
+    } catch (error) {
+      toast.error('Failed to read CSV file.');
+      event.target.value = '';
+    }
+  };
+
+  const handleCreatePaper = async () => {
+    if (!paper.name || !paper.subject || !paper.date || !paper.time) {
+      toast.error('Please fill all required paper details.');
+      return;
+    }
+    if (!selectedKeys.length) {
+      toast.error('Please select at least one student.');
+      return;
+    }
+    if (!csvText.trim()) {
+      toast.error('Please upload MCQs CSV file first.');
+      return;
+    }
 
     const scheduled = `${paper.date} ${paper.time}`;
-    const chosen = baseStudents.filter((s) => selectedKeys.includes(s.key));
+    const scheduledAt = new Date(`${paper.date}T${paper.time}:00`).toISOString();
 
-    const links = chosen.map((s, index) => ({
-      key: s.key,
-      name: s.name,
-      rollNumber: s.rollNumber,
-      studentId: s.studentId,
-      link: `https://edu-vision.exam/${encodeURIComponent(
-        paper.name.replace(/\s+/g, "-").toLowerCase()
-      )}/${s.studentId.toLowerCase()}`,
-      scheduled,
-      index: index + 1,
-    }));
+    try {
+      setCreatingPaper(true);
+      const createResponse = await examsApi.createPaper({
+        title: paper.name,
+        subject: paper.subject,
+        scheduledAt,
+        studentIds: selectedKeys,
+      });
 
-    setGeneratedLinks(links);
+      const createPayload = createResponse?.data || {};
+      const exam = createPayload?.exam;
+      const instances = Array.isArray(createPayload?.instances) ? createPayload.instances : [];
+
+      if (!exam?.id) {
+        throw new Error('Paper creation failed. Invalid response from server.');
+      }
+
+      const importResponse = await examsApi.importExamQuestions(exam.id, csvText);
+      const importedQuestions = importResponse?.data?.data || [];
+      const importErrors = importResponse?.data?.errors || [];
+
+      const links = instances.map((inst, index) => {
+        const selectedStudent = selectedStudentsMap[inst.studentId];
+        return {
+          key: inst.id || inst.studentId,
+          name: selectedStudent?.name || inst.studentId,
+          rollNumber: selectedStudent?.rollNumber || '-',
+          studentId: selectedStudent?.studentId || inst.studentId,
+          rawLink: inst.link,                // internal identifier stored in DB
+          link: toStudentUrl(inst.link),     // real clickable URL for students
+          scheduled,
+          index: index + 1,
+        };
+      });
+
+      setGeneratedLinks(links);
+      
+      toast.success(`Paper created. ${importedQuestions.length} questions imported.`);
+      if (importErrors.length) {
+        toast.info(`${importErrors.length} question rows failed to import. Check server logs for details.`);
+      }
+      
+      handleReset();
+      navigate(ROUTE_ENDPOINTS["generated-paper"]);
+    } catch (error) {
+      const message = error?.message || 'Failed to create paper. Please try again.';
+      toast.error(message);
+    } finally {
+      setCreatingPaper(false);
+    }
   };
 
   const generatedColumns = useMemo(
@@ -125,13 +281,17 @@ export function CreatePaper() {
         dataIndex: "link",
         key: "link",
         render: (link) => (
-          <button
-            type="button"
-            className="max-w-xs truncate text-left text-xs text-[var(--color-primary)] hover:underline"
-            onClick={() => navigator.clipboard?.writeText(link)}
-          >
-            {link}
-          </button>
+          <div className="flex items-center gap-2 max-w-xs">
+            <span className="truncate text-xs text-slate-500 flex-1">{link}</span>
+            <button
+              type="button"
+              title="Open student exam page in new tab"
+              className="shrink-0 text-[var(--color-primary)] hover:underline"
+              onClick={() => window.open(link, '_blank', 'noopener,noreferrer')}
+            >
+              <FiExternalLink className="w-3.5 h-3.5" />
+            </button>
+          </div>
         ),
       },
       {
@@ -152,8 +312,12 @@ export function CreatePaper() {
         render: (_, record) => (
           <button
             type="button"
+            title="Copy student exam link"
             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50"
-            onClick={() => navigator.clipboard?.writeText(record.link)}
+            onClick={() => {
+              navigator.clipboard?.writeText(record.link);
+              toast.success('Link copied!');
+            }}
           >
             <FiCopy className="w-4 h-4" />
           </button>
@@ -169,7 +333,7 @@ export function CreatePaper() {
       <Card className="border-slate-200">
         <CardBody className="space-y-4">
           <h2 className="text-sm font-semibold text-[var(--color-text)]">
-            Paper Details
+            Create New Paper
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <Input
@@ -184,17 +348,7 @@ export function CreatePaper() {
               <Dropdown
                 label="Subject *"
                 className="mb-0"
-                options={[
-                  { label: "Select a subject", value: "" },
-                  { label: "Mathematics", value: "Mathematics" },
-                  { label: "Physics", value: "Physics" },
-                  { label: "Chemistry", value: "Chemistry" },
-                  { label: "Biology", value: "Biology" },
-                  { label: "English", value: "English" },
-                  { label: "History", value: "History" },
-                  { label: "Geography", value: "Geography" },
-                  { label: "Computer Science", value: "Computer Science" },
-                ]}
+                options={subjectOptions.length > 1 ? subjectOptions : [{ label: 'Loading subjects…', value: '' }]}
                 value={paper.subject}
                 onChange={(value) =>
                   setPaper((p) => ({ ...p, subject: value }))
@@ -238,12 +392,23 @@ export function CreatePaper() {
               Format: Question, Option A, Option B, Option C, Option D, Correct
               Answer
             </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleCsvFileChange}
+            />
             <Button
               type="primary"
               className="mt-4"
+              onClick={handleBrowseCsv}
             >
               Browse Files
             </Button>
+            {selectedCsvFile ? (
+              <p className="mt-2 text-xs text-[var(--color-text)]">Selected: {selectedCsvFile.name}</p>
+            ) : null}
           </div>
         </CardBody>
       </Card>
@@ -265,7 +430,10 @@ export function CreatePaper() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
-            {baseStudents.map((s) => {
+            {loadingStudents ? (
+              <div className="col-span-3 text-center py-8">Loading students...</div>
+            ) : (
+              students.map((s) => {
               const checked = selectedKeys.includes(s.key);
               return (
                 <button
@@ -294,10 +462,21 @@ export function CreatePaper() {
                   </div>
                 </button>
               );
-            })}
+              })
+            )}
+          </div>
+          <div className="flex items-center justify-end mt-3">
+            <Pagination
+              current={page}
+              pageSize={limit}
+              total={total}
+              showSizeChanger
+              pageSizeOptions={[10,20,50]}
+              onChange={(p, ps) => { setPage(p); setLimit(ps); }}
+            />
           </div>
           <p className="text-[11px] text-[var(--color-text)]">
-            {selectedKeys.length} student(s) selected
+            {Object.keys(selectedStudentsMap).length} student(s) selected
           </p>
         </CardBody>
       </Card>
@@ -315,8 +494,9 @@ export function CreatePaper() {
           type="primary"
           className="w-full md:w-40"
           onClick={handleCreatePaper}
+          disabled={creatingPaper}
         >
-          Create Paper
+          {creatingPaper ? 'Creating...' : 'Create Paper'}
         </Button>
       </div>
 

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "exam-005",
+    "title": "Biology paper",
+    "subject": "Biology",
+    "totalQuestions": 0,
+    "timeLimitMinutes": 60,
+    "scheduledAt": "2026-03-29T10:46:00.000Z"
+  },
+  {
+    "id": "exam-006",
+    "title": "Physics",
+    "subject": "Physics",
+    "totalQuestions": 0,
+    "timeLimitMinutes": 60,
+    "scheduledAt": "2026-03-26T10:13:00.000Z"
+  },
+  {
+    "id": "exam-007",
+    "title": "IT",
+    "subject": "Computer Science",
+    "totalQuestions": 0,
+    "timeLimitMinutes": 60,
+    "scheduledAt": "2026-04-06T11:10:00.000Z"
+  }
+]

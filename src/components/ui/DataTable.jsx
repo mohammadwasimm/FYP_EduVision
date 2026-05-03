@@ -16,6 +16,7 @@ export function DataTable({
   isSkeleton = false,
   numRows, // reserved for future skeleton usage
   className = "",
+  pagination = false,
   ...rest
 }) {
   const finalData = dataSource || data || [];
@@ -25,7 +26,7 @@ export function DataTable({
       <Table
         columns={columns}
         dataSource={finalData}
-        pagination={false}
+        pagination={pagination || false}
         rowKey={(row) => row.id || row.key || row.examName}
         className={`custom-table ${showBorders ? "with-borders" : "no-borders"} ${className}`}
         scroll={{ x: "max-content" }}

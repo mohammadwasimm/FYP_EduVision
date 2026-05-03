@@ -1,0 +1,11 @@
+{
+  "notifications": {
+    "emailAlerts": true,
+    "criticalOnly": false,
+    "dailyDigest": true,
+    "soundAlerts": true
+  },
+  "security": {
+    "passwordStrength": "medium"
+  }
+}

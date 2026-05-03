@@ -1,0 +1,106 @@
+[
+  {
+    "id": "stu-002",
+    "name": "Jane Smith",
+    "rollNumber": "R002",
+    "className": "Class 12A",
+    "email": "jane@example.com",
+    "studentId": "STU002"
+  },
+  {
+    "id": "stu-003",
+    "name": "Test Persist",
+    "rollNumber": "R999",
+    "className": "Class P",
+    "email": "p@example.com",
+    "studentId": "STU003"
+  },
+  {
+    "id": "stu-005",
+    "name": "John Doe",
+    "rollNumber": "R001",
+    "className": "Class 12B",
+    "email": "john@example.com",
+    "studentId": "STU005"
+  },
+  {
+    "id": "stu-007",
+    "name": "Jane Roe",
+    "rollNumber": "R002",
+    "className": "Class 12B",
+    "email": "jane@example.com",
+    "studentId": "STU007"
+  },
+  {
+    "id": "stu-009",
+    "name": "Ali Khan",
+    "rollNumber": "R003",
+    "className": "Class 11A",
+    "email": "alik@example.com",
+    "studentId": "STU009"
+  },
+  {
+    "id": "stu-011",
+    "name": "Sara O'Neil",
+    "rollNumber": "R004",
+    "className": "Class 11A",
+    "email": "sara.oneil@example.com",
+    "studentId": "STU011"
+  },
+  {
+    "id": "stu-013",
+    "name": "Maria García",
+    "rollNumber": "R005",
+    "className": "Class 12C",
+    "email": "maria.garcia@example.com",
+    "studentId": "STU013"
+  },
+  {
+    "id": "stu-015",
+    "name": "Ahmed Hassan",
+    "rollNumber": "R006",
+    "className": "Class 10A",
+    "email": "ahmed.hassan@example.com",
+    "studentId": "STU015"
+  },
+  {
+    "id": "stu-017",
+    "name": "Fatima Noor",
+    "rollNumber": "R007",
+    "className": "Class 10A",
+    "email": "fatima.noor@example.com",
+    "studentId": "STU017"
+  },
+  {
+    "id": "stu-019",
+    "name": "Usman Tariq",
+    "rollNumber": "R008",
+    "className": "Class 9B",
+    "email": "usman.tariq@example.com",
+    "studentId": "STU019"
+  },
+  {
+    "id": "stu-021",
+    "name": "Ayesha Malik",
+    "rollNumber": "R009",
+    "className": "Class 9B",
+    "email": "ayesha.malik@example.com",
+    "studentId": "STU021"
+  },
+  {
+    "id": "stu-023",
+    "name": "Bilal Shah",
+    "rollNumber": "R010",
+    "className": "Class 8C",
+    "email": "bilal.shah@example.com",
+    "studentId": "STU023"
+  },
+  {
+    "id": "stu-013",
+    "name": "waseem",
+    "rollNumber": "23",
+    "className": "IT",
+    "email": "-",
+    "studentId": "STU013"
+  }
+]

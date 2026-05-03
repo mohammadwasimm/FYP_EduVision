@@ -1,0 +1,6 @@
+QuestionNumber,Question,Option A,Option B,Option C,Option D,Correct,Marks,Explanation,Category,MediaURL
+1,What is the derivative of x²?,x,2x,x²,2x²,B,1,"Basic derivative: d/dx x² = 2x",Mathematics,
+2,What is 2+2?,1,2,3,4,D,1,,Mathematics,
+3,Which gas do plants use for photosynthesis?,Oxygen,Carbon Dioxide,Nitrogen,Hydrogen,B,1,"Plants absorb CO2 for photosynthesis",Biology,
+4,Select the output of console.log(typeof null) in JS,Object,Null,Undefined,String,C,1,"JS quirk: typeof null === 'object'",Computer Science,
+5,Which country has the Eiffel Tower?,France,Italy,Spain,Germany,A,1,,Geography,

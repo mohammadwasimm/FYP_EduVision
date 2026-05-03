@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Waseem",
+    "roll-number": "ENG1234",
+    "class-name": "Engr",
+    "email": "waseem@gmail.com",
+    "id": "stu-003",
+    "student-id": "STU003"
+  },
+  {
+    "name": "Ali",
+    "roll-number": "Rol123",
+    "class-name": "Class Abc",
+    "email": "ali@gmail.com",
+    "id": "stu-004",
+    "student-id": "STU004"
+  },
+  {
+    "name": "Nadeem",
+    "roll-number": "Roll123",
+    "class-name": "Class123",
+    "email": "nadeem@gmail.com",
+    "id": "stu-006",
+    "student-id": "STU006"
+  }
+]

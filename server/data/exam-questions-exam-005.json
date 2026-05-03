@@ -1,0 +1,79 @@
+{
+  "questions": [
+    {
+      "id": "exam-005-q-1",
+      "question": "What is the basic unit of life?",
+      "options": [
+        "Atom",
+        "Cell",
+        "Tissue",
+        "Organ"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-005-q-3",
+      "question": "Which organelle is known as the powerhouse of the cell?",
+      "options": [
+        "Nucleus",
+        "Mitochondria",
+        "Ribosome",
+        "Golgi apparatus"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-005-q-5",
+      "question": "What is the process by which plants make food?",
+      "options": [
+        "Respiration",
+        "Photosynthesis",
+        "Digestion",
+        "Transpiration"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-005-q-7",
+      "question": "DNA stands for?",
+      "options": [
+        "Deoxyribonucleic Acid",
+        "Dinucleic Acid",
+        "Deoxynuclear Acid",
+        "None"
+      ],
+      "correct": 0,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    },
+    {
+      "id": "exam-005-q-9",
+      "question": "Which blood cells fight infection?",
+      "options": [
+        "Red blood cells",
+        "White blood cells",
+        "Platelets",
+        "Plasma"
+      ],
+      "correct": 1,
+      "marks": 1,
+      "explanation": "",
+      "category": "",
+      "mediaURL": null
+    }
+  ]
+}

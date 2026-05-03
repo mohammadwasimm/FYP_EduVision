@@ -1,0 +1,33 @@
+[
+  {
+    "id": 1774421233329,
+    "fullName": "admin",
+    "email": "admin@gmail.com",
+    "password": "admin123"
+  },
+  {
+    "id": 1774422067250,
+    "fullName": "Test Admin",
+    "email": "testadmin@example.com",
+    "password": "secret"
+  },
+  {
+    "id": 1774422576311,
+    "fullName": "Auto Test",
+    "email": "autotest+1@example.com",
+    "password": "secret"
+  },
+  {
+    "id": 1774422740021,
+    "fullName": "Hash Test",
+    "email": "hash+test@example.com",
+    "password": {
+      "kdf": "pbkdf2",
+      "salt": "a5ce13ee30b9a4668cd42cdf3789161f",
+      "iterations": 100000,
+      "keylen": 32,
+      "digest": "sha256",
+      "hash": "1698850318342ef7f0a562b54f70c194ab4f53829ad0294d6bf7f3121b7ce263"
+    }
+  }
+]

@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { DatePicker } from "antd";
+import { toast } from '../utils/react-toastify-shim';
 import { Search } from "../components/ui/Search";
 import { Dropdown } from "../components/ui/Dropdown";
 import { Button } from "../components/ui/Button";
@@ -7,84 +8,15 @@ import { Card, CardBody } from "../components/ui/Card";
 import { DataTable } from "../components/ui/DataTable";
 import { FiDownload, FiEye, FiAlertTriangle, FiBarChart2, FiActivity } from "react-icons/fi";
 import { IncidentEvidenceModal } from "../components/reports/IncidentEvidenceModal";
+import { useSelector } from 'react-redux';
+import { fetchReports, fetchReportsStats } from './reports/stores/actions';
+import { ReportsQueries } from '../store/serviceQueries/reportsQueries';
+import { examsApi } from '../store/apiClients/examsClient';
 
-const INCIDENTS = [
-  {
-    id: "inc-1",
-    studentName: "John Doe",
-    rollNumber: "R001",
-    exam: "Mathematics Final",
-    subject: "Mathematics",
-    cheatingType: "Mobile Phone Detected",
-    timestamp: "Jan 3, 2026 10:23 AM",
-    date: "2026-01-03",
-    severity: "high",
-    evidenceFile: "screenshot_001.jpg",
-  },
-  {
-    id: "inc-2",
-    studentName: "Jane Smith",
-    rollNumber: "R002",
-    exam: "Mathematics Final",
-    subject: "Mathematics",
-    cheatingType: "Excessive Head Movement",
-    timestamp: "Jan 3, 2026 10:45 AM",
-    date: "2026-01-03",
-    severity: "medium",
-    evidenceFile: "screenshot_002.jpg",
-  },
-  {
-    id: "inc-3",
-    studentName: "Mike Johnson",
-    rollNumber: "R003",
-    exam: "Physics Midterm",
-    subject: "Physics",
-    cheatingType: "Looking Away",
-    timestamp: "Jan 2, 2026 2:12 PM",
-    date: "2026-01-02",
-    severity: "low",
-    evidenceFile: "screenshot_003.jpg",
-  },
-  {
-    id: "inc-4",
-    studentName: "Chris Lee",
-    rollNumber: "R007",
-    exam: "Mathematics Final",
-    subject: "Mathematics",
-    cheatingType: "Multiple Persons Detected",
-    timestamp: "Jan 3, 2026 11:05 AM",
-    date: "2026-01-03",
-    severity: "high",
-    evidenceFile: "screenshot_004.jpg",
-  },
-  {
-    id: "inc-5",
-    studentName: "Sarah Wilson",
-    rollNumber: "R004",
-    exam: "Physics Midterm",
-    subject: "Physics",
-    cheatingType: "Tab Switching",
-    timestamp: "Jan 2, 2026 2:30 PM",
-    date: "2026-01-02",
-    severity: "medium",
-    evidenceFile: "screenshot_005.jpg",
-  },
-];
 
-export const EXAM_OPTIONS = [
-  { label: "All Exams", value: "all" },
-  { label: "Mathematics Final", value: "Mathematics Final" },
-  { label: "Physics Midterm", value: "Physics Midterm" },
-  { label: "Chemistry Quiz", value: "Chemistry Quiz" },
-];
-
-export const SUBJECT_OPTIONS = [
-  { label: "All Subjects", value: "all" },
-  { label: "Mathematics", value: "Mathematics" },
-  { label: "Physics", value: "Physics" },
-  { label: "Chemistry", value: "Chemistry" },
-  { label: "Biology", value: "Biology" },
-];
+// Seed options shown before API data loads
+const EXAM_OPTIONS_DEFAULT    = [{ label: "All Exams",    value: "all" }];
+const SUBJECT_OPTIONS_DEFAULT = [{ label: "All Subjects", value: "all" }];
 
 export function getSeverityTone(severity) {
   switch (severity) {
@@ -113,37 +45,123 @@ export function Reports() {
   const [search, setSearch] = useState("");
   const [examFilter, setExamFilter] = useState("all");
   const [subjectFilter, setSubjectFilter] = useState("all");
+  const [examOptions, setExamOptions] = useState(EXAM_OPTIONS_DEFAULT);
+  const [subjectOptions, setSubjectOptions] = useState(SUBJECT_OPTIONS_DEFAULT);
+  const [examMap, setExamMap] = useState({});
   const [dateFilter, setDateFilter] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
 
+  const reportsState = useSelector((s) => s.reports);
+  const incidents = reportsState?.list?.data || [];
+  const stats = reportsState?.stats?.data || { total: incidents.length, high: 0, medium: 0, low: 0 };
+
+  // fetch incidents and stats (debounced 400ms to avoid firing on every keystroke)
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      const q = search?.trim();
+      const params = {};
+      if (q) params.search = q;
+      if (examFilter && examFilter !== 'all') params.exam = examFilter;
+      if (subjectFilter && subjectFilter !== 'all') params.subject = subjectFilter;
+      if (dateFilter) params.date = dateFilter.format && dateFilter.format('YYYY-MM-DD');
+      fetchReports(params).catch(() => {});
+      fetchReportsStats().catch(() => {});
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, examFilter, subjectFilter, dateFilter]);
+
+  // fetch exams and subjects dynamically on mount
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const resp = await examsApi.getPapers();
+        const papers = (resp && resp.data) ? resp.data : [];
+        if (!mounted) return;
+  // only include exams where at least one student has taken the paper
+  const papersWithTaken = papers.filter(p => Array.isArray(p.instances) && p.instances.some(inst => inst.status === 'completed' || (Array.isArray(inst.answers) && inst.answers.length > 0)));
+
+  const exams = [{ label: 'All Exams', value: 'all' }, ...papersWithTaken.map(p => ({ label: p.title || p.id, value: p.id }))];
+  setExamOptions(exams);
+  // build exam map id -> { title, subject } using all papers (for display resolution)
+  const map = {};
+  papers.forEach(p => { map[p.id] = { title: p.title, subject: p.subject }; });
+  setExamMap(map);
+
+  // derive subjects from the filtered papers (only subjects where students took the paper)
+  const subjects = new Set();
+  papersWithTaken.forEach(p => { if (p.subject) subjects.add(p.subject); });
+  const subjOptions = [{ label: 'All Subjects', value: 'all' }, ...Array.from(subjects).map(s => ({ label: s, value: s }))];
+  setSubjectOptions(subjOptions);
+      } catch (e) {
+        // ignore
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  // Polling: re-fetch reports and stats every 15 seconds
+  useEffect(() => {
+    const id = setInterval(() => {
+      const params = {};
+      if (search?.trim()) params.search = search.trim();
+      if (examFilter && examFilter !== 'all') params.exam = examFilter;
+      if (subjectFilter && subjectFilter !== 'all') params.subject = subjectFilter;
+      if (dateFilter) params.date = dateFilter.format && dateFilter.format('YYYY-MM-DD');
+      fetchReports(params).catch(() => {});
+      fetchReportsStats().catch(() => {});
+    }, 15000);
+    return () => clearInterval(id);
+  }, [search, examFilter, subjectFilter, dateFilter]);
+
+  const handleExportCsv = async () => {
+    try {
+  toast.info('Preparing CSV...');
+      const q = search?.trim();
+      const params = {};
+      if (q) params.search = q;
+      if (examFilter && examFilter !== 'all') params.exam = examFilter;
+      if (subjectFilter && subjectFilter !== 'all') params.subject = subjectFilter;
+      if (dateFilter) params.date = dateFilter.format && dateFilter.format('YYYY-MM-DD');
+
+  const blob = await ReportsQueries.exportCsv(params);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'incidents.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+  toast.success('CSV download started');
+    } catch (_err) {
+  toast.error('Failed to export CSV');
+    }
+  };
+
   const filteredIncidents = useMemo(() => {
-    return INCIDENTS.filter((inc) => {
+    return incidents.filter((inc) => {
       const matchesSearch =
         !search.trim() ||
-        inc.studentName.toLowerCase().includes(search.trim().toLowerCase()) ||
-        inc.rollNumber.toLowerCase().includes(search.trim().toLowerCase());
+        (inc.studentName || '').toLowerCase().includes(search.trim().toLowerCase()) ||
+        (inc.rollNumber || '').toLowerCase().includes(search.trim().toLowerCase());
 
-      const matchesExam =
-        examFilter === "all" || inc.exam === examFilter;
-
-      const matchesSubject =
-        subjectFilter === "all" || inc.subject === subjectFilter;
-
-      const matchesDate = !dateFilter
-        ? true
-        : inc.date === dateFilter.format("YYYY-MM-DD");
+  const matchesExam = examFilter === "all" || inc.exam === examFilter;
+  // resolve subject: prefer incident.subject, otherwise look up from examMap
+  const incidentSubject = inc.subject || (inc.exam && examMap[inc.exam] && examMap[inc.exam].subject) || null;
+  const matchesSubject = subjectFilter === "all" || incidentSubject === subjectFilter;
+      const matchesDate = !dateFilter ? true : inc.date === dateFilter.format("YYYY-MM-DD");
 
       return matchesSearch && matchesExam && matchesSubject && matchesDate;
     });
-  }, [search, examFilter, subjectFilter, dateFilter]);
-
-  const stats = useMemo(() => {
-    const total = INCIDENTS.length;
-    const high = INCIDENTS.filter((i) => i.severity === "high").length;
-    const medium = INCIDENTS.filter((i) => i.severity === "medium").length;
-    return { total, high, medium };
-  }, []);
+  }, [incidents, search, examFilter, subjectFilter, dateFilter]);
 
   const columns = [
     {
@@ -165,8 +183,12 @@ export function Reports() {
       key: "exam",
       render: (_text, record) => (
         <div>
-          <p className="text-sm font-medium text-[var(--color-text)]">{record.exam}</p>
-          <p className="text-xs text-[var(--color-text)]">{record.subject}</p>
+          <p className="text-sm font-medium text-[var(--color-text)]">
+            { (examMap && examMap[record.exam] && examMap[record.exam].title) || record.exam }
+          </p>
+          <p className="text-xs text-[var(--color-text)]">
+            { record.subject || (examMap && examMap[record.exam] && examMap[record.exam].subject) || '' }
+          </p>
         </div>
       ),
     },
@@ -226,14 +248,14 @@ export function Reports() {
           />
           <div className="w-[220px]">
             <Dropdown
-              options={EXAM_OPTIONS}
+              options={examOptions}
               value={examFilter}
               onChange={setExamFilter}
             />
           </div>
           <div className="w-[220px]">
             <Dropdown
-              options={SUBJECT_OPTIONS}
+              options={subjectOptions}
               value={subjectFilter}
               onChange={setSubjectFilter}
             />
@@ -250,13 +272,16 @@ export function Reports() {
         </div>
 
         <div className="flex justify-end">
-          <Button
-            type="primary"
-            className="flex items-center gap-2 px-4"
-          >
-            <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export CSV</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="primary"
+              className="flex items-center gap-2 px-4"
+              onClick={handleExportCsv}
+            >
+              <FiDownload className="w-4 h-4" />
+              <span className="text-sm">Export CSV</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -269,10 +294,6 @@ export function Reports() {
               <div className="h-9 w-9 rounded-[8px] border border-emerald-200 bg-emerald-50 flex items-center justify-center text-emerald-500">
                 <FiActivity className="w-5 h-5" />
               </div>
-              {/* Optional delta, kept subtle */}
-              <span className="text-[11px] font-medium text-rose-500">
-                -12.5%
-              </span>
             </div>
             <div className="mt-4">
               <p className="text-2xl font-semibold text-[var(--color-text)]">
@@ -290,9 +311,6 @@ export function Reports() {
               <div className="h-9 w-9 rounded-[8px] border border-rose-200 bg-rose-50 flex items-center justify-center text-rose-500">
                 <FiAlertTriangle className="w-5 h-5" />
               </div>
-              <span className="text-[11px] font-medium text-rose-500">
-                -8.3%
-              </span>
             </div>
             <div className="mt-4">
               <p className="text-2xl font-semibold text-rose-500">
@@ -310,9 +328,6 @@ export function Reports() {
               <div className="h-9 w-9 rounded-[8px] border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-500">
                 <FiBarChart2 className="w-5 h-5" />
               </div>
-              <span className="text-[11px] font-medium text-amber-500">
-                +3.0%
-              </span>
             </div>
             <div className="mt-4">
               <p className="text-2xl font-semibold text-amber-500">

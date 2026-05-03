@@ -11,13 +11,38 @@
 # production
 /build
 
-# misc
-.DS_Store
+# environment — never commit secrets
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# misc
+.DS_Store
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Snapshot images uploaded at runtime
+server/data/snapshots/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+backend/ai_engine

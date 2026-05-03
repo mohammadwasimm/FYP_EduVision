@@ -400,6 +400,47 @@
   padding-left: 8px !important;
 }
 
+/* =========================
+   Pagination styling (Ant Design)
+   ========================= */
+
+/* Active page background and border */
+.ant-pagination-item-active {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Active page text color */
+.ant-pagination-item-active a {
+  color: var(--color-white) !important;
+}
+
+/* Hover state for pagination items */
+.ant-pagination-item:hover {
+  border-color: var(--color-primary) !important;
+}
+
+/* Prev/Next buttons and simple pager icons use primary color on hover */
+.ant-pagination-prev:hover a,
+.ant-pagination-next:hover a,
+.ant-pagination-prev:hover .ant-pagination-item-link,
+.ant-pagination-next:hover .ant-pagination-item-link {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Page size selector (select) styling */
+.ant-select-selector {
+  border-radius: 6px !important;
+  border-color: rgb(226 232 240) !important;
+}
+
+/* Make the pagination component slightly more compact to fit table footers */
+.ant-pagination {
+  margin: 12px 0 0 0;
+}
+
+
 /* Ensure Radio.Group with flex-col displays children with gaps */
 .ant-radio-group.flex.flex-col.gap-3 > .ant-radio-wrapper {
   margin-bottom: 0 !important;

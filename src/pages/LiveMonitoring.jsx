@@ -1,201 +1,198 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { SummaryCards } from "../components/monitoring/SummaryCards";
 import { SearchWithFilters } from "../components/monitoring/SearchWithFilters";
 import { MonitoringCard } from "../components/monitoring/MonitoringCard";
 import { MonitoringModal } from "../components/monitoring/MonitoringModal";
+import { monitoringApi } from "../store/apiClients/monitoringClient";
+import { useSocket } from "../utils/useSocket";
+import { ENV_CONFIG } from "../config/env";
+import { FiRefreshCw, FiMonitor } from "react-icons/fi";
 
-const initialStudents = [
-  {
-    id: "1",
-    name: "John Doe",
-    rollNumber: "R001",
-    studentId: "STU001",
-    status: "critical",
-    metrics: {
-      movement: "Left",
-      suspicious: "Suspicious",
-      phoneDetection: "Yes",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "Yes",
-    },
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    rollNumber: "R002",
-    studentId: "STU002",
-    status: "warning",
-    metrics: {
-      movement: "Right",
-      suspicious: "Normal",
-      phoneDetection: "No",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "No",
-    },
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    rollNumber: "R003",
-    studentId: "STU003",
-    status: "normal",
-    metrics: {
-      movement: "Normal",
-      suspicious: "Normal",
-      phoneDetection: "No",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "No",
-    },
-  },
-  {
-    id: "4",
-    name: "Sarah Wilson",
-    rollNumber: "R004",
-    studentId: "STU004",
-    status: "warning",
-    metrics: {
-      movement: "Down",
-      suspicious: "Suspicious",
-      phoneDetection: "No",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "No",
-    },
-  },
-  {
-    id: "5",
-    name: "David Brown",
-    rollNumber: "R005",
-    studentId: "STU005",
-    status: "critical",
-    metrics: {
-      movement: "Left",
-      suspicious: "Suspicious",
-      phoneDetection: "Yes",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "Yes",
-    },
-  },
-  {
-    id: "6",
-    name: "Emily Davis",
-    rollNumber: "R006",
-    studentId: "STU006",
-    status: "normal",
-    metrics: {
-      movement: "Normal",
-      suspicious: "Normal",
-      phoneDetection: "No",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "No",
-    },
-  },
-  {
-    id: "7",
-    name: "Chris Miller",
-    rollNumber: "R007",
-    studentId: "STU007",
-    status: "warning",
-    metrics: {
-      movement: "Right",
-      suspicious: "Normal",
-      phoneDetection: "No",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "No",
-    },
-  },
-  {
-    id: "8",
-    name: "Lisa Anderson",
-    rollNumber: "R008",
-    studentId: "STU008",
-    status: "normal",
-    metrics: {
-      movement: "Normal",
-      suspicious: "Normal",
-      phoneDetection: "No",
-      headMovement: "Normal",
-      eyeStatus: "Normal",
-      mobileDetected: "No",
-    },
-  },
-];
-
-const filters = [
-  { key: "all", label: "All" },
-  { key: "critical", label: "Critical" },
-  { key: "warning", label: "Warning" },
-  { key: "normal", label: "Normal" },
-];
+const FILTER_KEYS = ["all", "critical", "warning", "normal"];
 
 export function LiveMonitoring() {
-  const [search, setSearch] = useState("");
+  const [sessions, setSessions]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen]   = useState(false);
+  const [lastRefresh, setLastRefresh]   = useState(null);
 
-  const filteredStudents = useMemo(() => {
-    let result = initialStudents;
+  // Live frames: { [instanceId]: base64DataUrl } updated every 2s from socket
+  const [liveFrames, setLiveFrames] = useState({});
 
-    // Filter by search
-    if (search.trim()) {
-      const query = search.trim().toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(query) ||
-          s.rollNumber.toLowerCase().includes(query)
-      );
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+
+  // ── Fetch active sessions ────────────────────────────────────────────────
+  const loadSessions = useCallback(async () => {
+    try {
+      const data = await monitoringApi.getAllActiveSessions();
+      setSessions(data);
+      setLastRefresh(new Date());
+    } catch (e) {
+      console.error("Monitoring load failed:", e);
+    } finally {
+      setLoading(false);
     }
-
-    // Filter by status
-    if (activeFilter !== "all") {
-      result = result.filter((s) => s.status === activeFilter);
-    }
-
-    return result;
-  }, [search, activeFilter]);
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    return {
-      totalLive: initialStudents.length,
-      normal: initialStudents.filter((s) => s.status === "normal").length,
-      warnings: initialStudents.filter((s) => s.status === "warning").length,
-      critical: initialStudents.filter((s) => s.status === "critical").length,
-    };
   }, []);
 
-  // Get first 4 cards for single row display
-  const displayCards = filteredStudents.slice(0, 4);
+  useEffect(() => { loadSessions(); }, [loadSessions]);
 
+  // Fallback poll every 10s in case socket is unavailable
+  useEffect(() => {
+    const id = setInterval(loadSessions, 10_000);
+    return () => clearInterval(id);
+  }, [loadSessions]);
+
+  // ── Socket.io — real-time updates ────────────────────────────────────────
+  const { emit } = useSocket({
+    // Student's webcam frame arrives every 2s
+    student_frame: (payload) => {
+      const { instanceId, imageData } = payload;
+      if (!instanceId || !imageData) return;
+
+      // Store latest frame for this student
+      setLiveFrames(prev => ({ ...prev, [instanceId]: imageData }));
+
+      // If this student isn't in the grid yet → reload sessions
+      const known = sessionsRef.current.find(s => s.instanceId === instanceId);
+      if (!known) loadSessions();
+    },
+
+    // Server-emitted AI / motion metric update
+    metrics_update: (payload) => {
+      setSessions(prev => {
+        const idx = prev.findIndex(s => s.instanceId === payload.instanceId);
+        if (idx === -1) { loadSessions(); return prev; }
+
+        const updated = [...prev];
+        const m = payload.metrics || {};
+        let status = 'normal';
+        if (
+          String(m.mobileDetected || '').toLowerCase().includes('yes') ||
+          String(m.headMovement   || '').toLowerCase().includes('critical')
+        ) status = 'critical';
+        else if (
+          (typeof m.motionScore === 'number' && m.motionScore > 0.04) ||
+          String(m.headMovement || '').toLowerCase().includes('warning') ||
+          (m.gazeDirection && m.gazeDirection !== 'Looking Center')
+        ) status = 'warning';
+
+        updated[idx] = { ...updated[idx], metrics: m, status, lastMetricsAt: payload.timestamp };
+        return updated;
+      });
+    },
+
+    snapshot_update: (payload) => {
+      setSessions(prev => {
+        const idx = prev.findIndex(s => s.instanceId === payload.instanceId);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], snapshot: payload.snapshot };
+        return updated;
+      });
+    },
+
+    new_incident: () => {
+      loadSessions();
+    },
+
+    // Remove session card immediately when admin terminates a student
+    session_terminated: (payload) => {
+      setSessions(prev => prev.filter(s => s.instanceId !== payload.instanceId));
+      setLiveFrames(prev => {
+        const next = { ...prev };
+        delete next[payload.instanceId];
+        return next;
+      });
+    },
+  });
+
+  useEffect(() => { emit('join_monitoring'); }, [emit]);
+
+  // Update modal data live when socket updates arrive
+  useEffect(() => {
+    if (selectedStudent && isModalOpen) {
+      const live = sessionsRef.current.find(s => s.instanceId === selectedStudent.instanceId);
+      if (live) setSelectedStudent(live);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions]);
+
+  // ── Derived ──────────────────────────────────────────────────────────────
+  const filteredSessions = useMemo(() => {
+    let result = sessions;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        s.rollNumber.toLowerCase().includes(q) ||
+        s.examTitle?.toLowerCase().includes(q)
+      );
+    }
+    if (activeFilter !== "all") result = result.filter(s => s.status === activeFilter);
+    return result;
+  }, [sessions, search, activeFilter]);
+
+  const stats = useMemo(() => ({
+    totalLive: sessions.length,
+    normal:   sessions.filter(s => s.status === "normal").length,
+    warnings: sessions.filter(s => s.status === "warning").length,
+    critical: sessions.filter(s => s.status === "critical").length,
+  }), [sessions]);
+
+  // Dynamic filter buttons with live counts
+  const filters = useMemo(() => {
+    const counts = {
+      all:      sessions.length,
+      critical: sessions.filter(s => s.status === "critical").length,
+      warning:  sessions.filter(s => s.status === "warning").length,
+      normal:   sessions.filter(s => s.status === "normal").length,
+    };
+    return FILTER_KEYS.map(key => ({
+      key,
+      label: `${key.charAt(0).toUpperCase() + key.slice(1)} (${counts[key]})`,
+    }));
+  }, [sessions]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleCardClick = (student) => {
     setSelectedStudent(student);
     setIsModalOpen(true);
   };
+  const handleModalClose = () => { setIsModalOpen(false); setSelectedStudent(null); };
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setSelectedStudent(null);
-  };
-
-  const handleSessionOut = () => {
-    // Handle session out logic here
-    console.log("Session out:", selectedStudent);
-    handleModalClose();
+  const resolveSnapshot = (snap) => {
+    if (!snap) return null;
+    if (snap.startsWith('http') || snap.startsWith('data:')) return snap;
+    return `${ENV_CONFIG.API_BASE_URL}${snap}`;
   };
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-400">
+          {loading
+            ? 'Loading sessions…'
+            : sessions.length === 0
+              ? 'No active exam sessions. Students appear here once they open their exam link.'
+              : `${sessions.length} active session${sessions.length !== 1 ? 's' : ''} · ${lastRefresh ? `updated ${lastRefresh.toLocaleTimeString()}` : ''}`}
+        </p>
+        <button
+          onClick={loadSessions}
+          className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
+        >
+          <FiRefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
+        </button>
+      </div>
+
+      {/* Summary */}
       <SummaryCards stats={stats} />
 
-      {/* Search and Filters */}
+      {/* Filters */}
       <SearchWithFilters
         searchValue={search}
         onSearchChange={setSearch}
@@ -204,23 +201,48 @@ export function LiveMonitoring() {
         onFilterChange={setActiveFilter}
       />
 
-      {/* Monitoring Cards - Single Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {displayCards.map((student) => (
-          <MonitoringCard
-            key={student.id}
-            student={student}
-            onClick={() => handleCardClick(student)}
-          />
-        ))}
-      </div>
+      {/* Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredSessions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-slate-400 space-y-3">
+          <FiMonitor className="w-12 h-12 opacity-25" />
+          <p className="text-sm font-medium">
+            {sessions.length === 0
+              ? "No active sessions yet"
+              : "No sessions match your filters"}
+          </p>
+          <p className="text-xs text-center max-w-xs">
+            {sessions.length === 0
+              ? "When a student opens their exam link, their live webcam feed will appear here in real-time."
+              : "Try changing the filter or search term."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredSessions.map(student => (
+            <MonitoringCard
+              key={student.instanceId}
+              student={student}
+              liveFrame={liveFrames[student.instanceId] || null}
+              onClick={() => handleCardClick(student)}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Monitoring Modal */}
+      {/* Detail Modal */}
       <MonitoringModal
         student={selectedStudent}
         isOpen={isModalOpen}
         onClose={handleModalClose}
-        onSessionOut={handleSessionOut}
+        onSessionOut={handleModalClose}
+        liveFrame={selectedStudent ? liveFrames[selectedStudent.instanceId] || null : null}
+        snapshot={resolveSnapshot(selectedStudent?.snapshot)}
       />
     </div>
   );

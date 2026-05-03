@@ -5,10 +5,11 @@
  * navigate programmatically, so paths stay in one place.
  */
 export const ROUTE_ENDPOINTS = {
-  dashboard: "/",
+  dashboard: "/dashboard",
   students: "/students",
   "student-enroll": "/student-enroll",
   "create-paper": "/create-paper",
+  "generated-paper": "/create-paper/generated-paper",
   "live-monitoring": "/live-monitoring",
   reports: "/reports",
   settings: "/settings",
