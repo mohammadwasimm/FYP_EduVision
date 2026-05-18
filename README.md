@@ -1,70 +1,344 @@
-# Getting Started with Create React App
+# EduVision - AI-Powered Exam Monitoring System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+An intelligent, real-time exam proctoring system that uses computer vision and AI to detect suspicious behavior during online examinations. EduVision helps educational institutions maintain exam integrity by providing automated monitoring and instant incident alerts.
 
-## Available Scripts
+## 🎯 Features
 
-In the project directory, you can run:
+### Admin Dashboard
+- **Exam Management**: Create, configure, and manage exams with customizable settings
+- **Live Monitoring**: Real-time webcam feed monitoring of all exam instances
+- **Incident Alerts**: Instant notifications (audio, toast, email, and browser notifications) when suspicious activity is detected
+- **Reports & Analytics**: Comprehensive reports on detected incidents and exam statistics
+- **Student Management**: Track enrolled students and their exam performance
 
-### `npm start`
+### Exam Monitoring
+- **Real-Time Detection**: AI-powered computer vision to detect:
+  - Multiple faces in frame
+  - Phone usage
+  - Suspicious head movements
+  - Environmental anomalies
+- **Live Webcam Streaming**: Continuous monitoring of student webcams during exams
+- **Incident Logging**: Detailed incident records with timestamps and severity levels
+- **Severity Levels**: Different alert thresholds (warning vs. critical)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Student Interface
+- **Exam Enrollment**: Secure enrollment with verification
+- **Exam Participation**: Clean, focused exam interface
+- **Verification**: Identity verification before exam start
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Settings & Configuration
+- **Admin Settings**: Configure monitoring sensitivity, alert preferences
+- **Notification Options**: Email alerts, browser notifications, audio alerts
+- **User Management**: Create admin accounts and manage permissions
 
-### `npm test`
+## 🏗️ Architecture
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Frontend (React + TypeScript)
+- **Framework**: React 19 with TypeScript
+- **State Management**: Redux Toolkit + Redux Persist
+- **UI Components**: Ant Design (antd) + Custom Components
+- **Styling**: Tailwind CSS + PostCSS
+- **Real-Time**: Socket.io client for live updates
+- **HTTP Client**: Axios + React Query
+- **Routing**: React Router v6
 
-### `npm run build`
+### Backend (Node.js + Express)
+- **Framework**: Express.js
+- **Real-Time Communication**: Socket.io
+- **Database**: SQLite (better-sqlite3)
+- **Authentication**: JWT-based auth
+- **File Upload**: Multer
+- **Notifications**: Email notifications via Nodemailer
+- **Environment**: dotenv for configuration
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### AI/ML
+- **TensorFlow.js**: Client-side ML inference
+- **COCO-SSD**: Object detection for identifying suspicious items/behaviors
+- **Real-Time Processing**: In-browser video frame analysis
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📁 Project Structure
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+edu-vision-ai-monitor/
+├── src/                          # Frontend (React)
+│   ├── components/               # Reusable React components
+│   │   ├── layout/              # Layout components (AppShell, etc.)
+│   │   ├── forms/               # Form components
+│   │   └── ...                  # Feature-specific components
+│   ├── pages/                    # Page components
+│   │   ├── auth/                # Authentication pages (SignIn, SignUp)
+│   │   ├── Dashboard.jsx        # Admin dashboard
+│   │   ├── LiveMonitoring.jsx   # Real-time monitoring view
+│   │   ├── Students.jsx         # Student management
+│   │   ├── Reports.jsx          # Reports & analytics
+│   │   ├── Settings.jsx         # Settings management
+│   │   └── ...
+│   ├── store/                   # Redux store configuration
+│   ├── config/                  # Configuration files
+│   ├── utils/                   # Utility functions & hooks
+│   ├── App.tsx                  # Main app component
+│   └── index.tsx                # Entry point
+│
+├── server/                       # Backend (Express)
+│   ├── routes/                  # API route handlers
+│   │   ├── auth.js             # Authentication endpoints
+│   │   ├── exams.js            # Exam management endpoints
+│   │   ├── students.js         # Student endpoints
+│   │   ├── reports.js          # Reports endpoints
+│   │   ├── dashboard.js        # Dashboard data endpoints
+│   │   └── settings.js         # Settings endpoints
+│   ├── db/                      # Database
+│   │   ├── database.js         # DB initialization
+│   │   └── migrate.js          # JSON to SQLite migration
+│   ├── middleware/              # Express middleware
+│   │   └── auth.js             # JWT authentication middleware
+│   ├── utils/                   # Utility functions
+│   │   └── notifications.js    # Email notification service
+│   ├── data/                    # Data storage
+│   │   └── snapshots/          # Student webcam snapshots
+│   └── index.js                # Express server entry point
+│
+├── public/                       # Static assets
+├── data/                         # Local data files
+├── package.json                 # Dependencies & scripts
+└── tsconfig.json               # TypeScript configuration
+```
 
-### `npm run eject`
+## 🚀 Getting Started
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Prerequisites
+- Node.js (v14 or higher)
+- npm or yarn
+- A modern web browser with webcam support
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Installation
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd edu-vision-ai-monitor
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+2. **Install dependencies**
+```bash
+npm install
+```
 
-## Learn More
+3. **Create environment file**
+```bash
+cp .env.example .env
+# Edit .env with your configuration (see Configuration section below)
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+4. **Start the development server**
+```bash
+npm start
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+This command runs both the backend server (port 5000) and frontend (port 3000) concurrently:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
 
-### Code Splitting
+### Individual Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+To run backend and frontend separately:
 
-### Analyzing the Bundle Size
+```bash
+# Terminal 1: Backend
+npm run start:server
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+# Terminal 2: Frontend
+npm run start
+```
 
-### Making a Progressive Web App
+## ⚙️ Configuration
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Create a `.env` file in the project root:
 
-### Advanced Configuration
+```env
+# Backend Configuration
+BACKEND_PORT=5000
+NODE_ENV=development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+# Database
+DB_PATH=./data/database.sqlite
 
-### Deployment
+# JWT Configuration
+JWT_SECRET=your-secret-key-here
+JWT_EXPIRY=24h
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+# Email Configuration (for incident alerts)
+SMTP_HOST=your-smtp-host
+SMTP_PORT=587
+SMTP_USER=your-email@example.com
+SMTP_PASSWORD=your-password
+ADMIN_EMAIL=admin@example.com
 
-### `npm run build` fails to minify
+# Frontend
+REACT_APP_API_URL=http://localhost:5000
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 📝 Available Scripts
+
+### Development
+```bash
+# Start both frontend and backend
+npm start
+
+# Start only the backend
+npm run start:server
+npm run dev:server
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+```
+
+### API Endpoints
+
+#### Authentication
+- `POST /api/auth/admin/signup` - Register new admin
+- `POST /api/auth/admin/signin` - Admin login
+- `POST /api/auth/logout` - Logout
+
+#### Exams
+- `GET /api/exams` - List all exams (admin)
+- `POST /api/exams` - Create new exam (admin)
+- `GET /api/exams/:id` - Get exam details
+- `PUT /api/exams/:id` - Update exam
+- `DELETE /api/exams/:id` - Delete exam
+- `GET /api/exams/instances/:code` - Get exam instance (student)
+
+#### Students
+- `GET /api/students` - List all students (admin)
+- `POST /api/students` - Add student
+- `PUT /api/students/:id` - Update student
+- `DELETE /api/students/:id` - Remove student
+
+#### Reports
+- `GET /api/reports` - Get incident reports (admin)
+- `GET /api/reports/:examId` - Get reports for specific exam
+
+#### Dashboard
+- `GET /api/dashboard/stats` - Get dashboard statistics
+- `GET /api/dashboard/incidents` - Get recent incidents
+
+#### Settings
+- `GET /api/settings` - Get app settings
+- `PUT /api/settings` - Update settings
+
+## 🔌 Real-Time Features (Socket.io)
+
+The application uses Socket.io for real-time communication:
+
+### Student Events
+- `join_exam` - Student joins exam room
+- `student_frame` - Send webcam frame for monitoring
+
+### Admin Events
+- `join_monitoring` - Admin starts monitoring
+- `student_frame` - Receive student frames
+- `incident_created` - New incident detected
+
+### Broadcast Events
+- `new_incident` - Alert about new incident
+- `student_frame` - Real-time video frames
+
+## 🎬 How It Works
+
+1. **Admin Setup**: Admin creates an exam and configures monitoring settings
+2. **Student Enrollment**: Students enroll with verification
+3. **Exam Start**: Student verifies identity and starts exam
+4. **Live Monitoring**: 
+   - Student webcam continuously streams to backend
+   - AI analyzes frames for suspicious behavior
+   - Incidents are flagged in real-time
+5. **Incident Alerts**: Admins receive instant alerts via multiple channels
+6. **Post-Exam**: Reports and analytics generated automatically
+
+## 🛡️ Security Features
+
+- **JWT Authentication**: Secure admin authentication
+- **CORS Configuration**: Restricted cross-origin requests
+- **Request Validation**: Input validation on all endpoints
+- **Environment Variables**: Sensitive config stored in .env
+- **Password Hashing**: Secure password storage (via auth middleware)
+
+## 📊 Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 19, TypeScript, Redux Toolkit, Ant Design, Tailwind CSS |
+| **Backend** | Node.js, Express, Socket.io |
+| **Database** | SQLite |
+| **ML/AI** | TensorFlow.js, COCO-SSD |
+| **Real-Time** | Socket.io |
+| **Build Tools** | Create React App, Webpack, Babel |
+| **Styling** | Tailwind CSS, PostCSS |
+
+## 🧪 Testing
+
+```bash
+# Run test suite
+npm test
+
+# Run tests in watch mode
+npm test -- --watch
+```
+
+## 📦 Building for Production
+
+```bash
+npm run build
+```
+
+This creates an optimized production build in the `build/` folder. The bundle is minified and filenames include hashes for caching.
+
+## 🐛 Troubleshooting
+
+### Port Already in Use
+```bash
+# Change backend port
+BACKEND_PORT=5001 npm run start:server
+
+# Change frontend port (must be in .env.local or via CRA)
+PORT=3001 npm start
+```
+
+### Database Issues
+- Remove `data/database.sqlite` and restart to reinitialize
+- Check server logs for migration errors
+
+### Webcam Permission Denied
+- Check browser permissions for camera access
+- Ensure HTTPS is used in production (required for camera access)
+
+### Socket.io Connection Issues
+- Verify backend is running on configured port
+- Check CORS settings in `server/index.js`
+- Look for firewall/proxy blocking WebSocket connections
+
+## 📝 License
+
+Specify your license here (e.g., MIT, Apache 2.0, etc.)
+
+## 👥 Contributing
+
+1. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Push to the branch (`git push origin feature/amazing-feature`)
+4. Open a Pull Request
+
+## 📞 Support
+
+For issues, questions, or feature requests, please create an issue in the repository.
+
+## 🔗 Related Resources
+
+- [React Documentation](https://react.dev/)
+- [Express Documentation](https://expressjs.com/)
+- [Socket.io Documentation](https://socket.io/docs/)
+- [TensorFlow.js Documentation](https://www.tensorflow.org/js)
+- [Ant Design Components](https://ant.design/)
