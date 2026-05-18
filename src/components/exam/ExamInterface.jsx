@@ -215,9 +215,14 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         if (cocoModelRef.current) {
           try {
             const predictions = await cocoModelRef.current.detect(video);
-            // COCO dataset class 76 = 'cell phone'; also catch 'remote' as proxy
+            // Detect cell phones with lower threshold for better sensitivity
+            // Also check for 'remote' and 'laptop' as they indicate potential cheating devices
             const found = predictions.some(
-              p => (p.class === 'cell phone' || p.class === 'remote') && p.score > 0.55
+              p => {
+                const isPhoneOrDevice = ['cell phone', 'remote', 'laptop'].includes(p.class);
+                const hasGoodConfidence = p.score > 0.45; // Lowered threshold from 0.55
+                return isPhoneOrDevice && hasGoodConfidence;
+              }
             );
             if (found) mobileDetected = 'Yes';
           } catch (_) { /* GPU context errors — non-fatal */ }

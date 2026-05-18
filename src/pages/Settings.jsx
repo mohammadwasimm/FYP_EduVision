@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Card, CardBody } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Checkbox } from "../components/ui/Checkbox";
 import {
   FiLock, FiBell, FiSave, FiEye, FiEyeOff,
-  FiUser, FiDatabase, FiTrash2,
+  FiUser, FiDatabase, FiTrash2, FiUploadCloud,
 } from "react-icons/fi";
 import { SettingsQueries } from '../store/serviceQueries/settingsQueries';
 import { settingsApi } from '../store/apiClients/settingsClient';
@@ -23,6 +23,9 @@ export function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const reduxAdmin = useSelector((state) => state?.auth?.user || null);
   const [admin, setAdmin] = useState(reduxAdmin || {});
+  const [profilePicture, setProfilePicture] = useState(admin?.profilePicture || null);
+  const [uploadingPic, setUploadingPic] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Fetch fresh profile from server if Redux is empty (e.g. after page refresh)
   useEffect(() => {
@@ -101,6 +104,51 @@ export function Settings() {
   const inputCls = "w-full h-[45px] rounded-[9px] border border-slate-200 bg-[var(--color-input-bg)] px-3 text-sm outline-none text-[var(--color-text)]";
   const rowCls   = "flex items-center justify-between rounded-[12px] bg-slate-50 px-4 py-4";
 
+  // ── Profile Picture Upload ──────────────────────────────────────────────
+  const handleProfilePictureUpload = async (event) => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validImageTypes.includes(file.type)) {
+      toast.error('Please upload a valid image file (JPEG, PNG, GIF, WebP).');
+      event.target.value = '';
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image file must be less than 5MB.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingPic(true);
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      const response = await settingsApi.uploadProfilePicture(formData);
+      const picUrl = response?.data?.profilePicture || response?.data?.data?.profilePicture;
+
+      if (picUrl) {
+        setProfilePicture(picUrl);
+        setAdmin((prev) => ({ ...prev, profilePicture: picUrl }));
+        toast.success('Profile picture updated successfully!');
+      } else {
+        toast.error('Failed to upload profile picture. Please try again.');
+      }
+    } catch (error) {
+      toast.error(error?.message || 'Failed to upload profile picture.');
+    } finally {
+      setUploadingPic(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   // ── Tab: Profile ────────────────────────────────────────────────────────
   const renderProfile = () => (
     <Card className="border-slate-200 rounded-[12px] w-full">
@@ -111,9 +159,31 @@ export function Settings() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-2xl font-bold select-none">
-            {(admin.fullName || admin.email || 'A')[0].toUpperCase()}
+          <div className="relative">
+            {profilePicture ? (
+              <img src={profilePicture} alt="Profile" className="w-16 h-16 rounded-full object-cover" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[var(--color-primary)] flex items-center justify-center text-white text-2xl font-bold select-none">
+                {(admin.fullName || admin.email || 'A')[0].toUpperCase()}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-0 right-0 bg-[var(--color-primary)] text-white rounded-full p-1.5 hover:opacity-90"
+              title="Change profile picture"
+            >
+              <FiUploadCloud className="w-3 h-3" />
+            </button>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleProfilePictureUpload}
+            disabled={uploadingPic}
+            className="hidden"
+          />
           <div>
             <p className="text-base font-semibold text-[var(--color-text)]">{admin.fullName || '—'}</p>
             <p className="text-sm text-slate-500">{admin.email || '—'}</p>

@@ -19,9 +19,16 @@ export function AdminSignIn() {
     }
   }, [redirectToDashboard]);
 
+  const validateEmail = (e) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(e);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) return toast.error('Please enter credentials');
+    if (!validateEmail(email)) return toast.error('Please enter a valid email address');
+    if (password.length < 6) return toast.error('Password must be at least 6 characters');
     try {
       const res = await signin({ email, password });
       toast.success('Signed in');
@@ -37,10 +44,10 @@ export function AdminSignIn() {
   <p className="text-sm text-slate-600 mb-6">Enter your credentials to access the admin panel</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Input label="Email / Username" placeholder="admin@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
+            <Input label={<span>Email / Username <span className="text-red-500">*</span></span>} placeholder="admin@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
           </div>
           <div>
-            <Input label="Password" type="password" placeholder="Enter your password" value={password} onChange={(e)=>setPassword(e.target.value)} />
+            <Input label={<span>Password <span className="text-red-500">*</span></span>} type="password" placeholder="Enter your password" value={password} onChange={(e)=>setPassword(e.target.value)} />
           </div>
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-[var(--color-text)]"><input type="checkbox"/> Remember me</label>

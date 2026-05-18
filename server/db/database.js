@@ -48,6 +48,7 @@ db.exec(`
     studentId       TEXT    REFERENCES students(id) ON DELETE SET NULL,
     link            TEXT    NOT NULL,
     scheduledAt     TEXT,
+    duration        INTEGER DEFAULT 60,
     status          TEXT    DEFAULT 'created',
     startedAt       TEXT,
     completedAt     TEXT,
@@ -107,6 +108,18 @@ db.exec(`
 const incidentCols = db.prepare(`PRAGMA table_info(incidents)`).all().map(c => c.name);
 if (!incidentCols.includes('snapshots')) {
   db.exec(`ALTER TABLE incidents ADD COLUMN snapshots TEXT DEFAULT '[]'`);
+}
+
+// Add profile_picture column to admins if it doesn't exist
+const adminCols = db.prepare(`PRAGMA table_info(admins)`).all().map(c => c.name);
+if (!adminCols.includes('profile_picture')) {
+  db.exec(`ALTER TABLE admins ADD COLUMN profile_picture TEXT DEFAULT NULL`);
+}
+
+// Add duration column to exam_instances if it doesn't exist
+const instanceCols = db.prepare(`PRAGMA table_info(exam_instances)`).all().map(c => c.name);
+if (!instanceCols.includes('duration')) {
+  db.exec(`ALTER TABLE exam_instances ADD COLUMN duration INTEGER DEFAULT 60`);
 }
 
 // Seed default settings if missing

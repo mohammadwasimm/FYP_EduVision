@@ -22,12 +22,34 @@ export function Topbar({ title = "Dashboard" }) {
 
   // Live notification badge — increments on every new incident via Socket.io
   const [unread, setUnread] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useSocket({
-    new_incident: () => setUnread((n) => n + 1),
+    new_incident: (incident) => {
+      setUnread((n) => n + 1);
+      setNotifications((prev) => [
+        {
+          id: Date.now(),
+          type: 'incident',
+          title: incident?.title || 'New Incident',
+          message: incident?.message || 'A new incident has been detected',
+          severity: incident?.severity || 'warning',
+          timestamp: new Date(),
+          read: false,
+        },
+        ...prev.slice(0, 9), // Keep last 10 notifications
+      ]);
+    },
   });
 
-  const handleBellClick = () => setUnread(0);
+  const handleBellClick = () => {
+    setShowNotifications(!showNotifications);
+    setUnread(0);
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, read: true }))
+    );
+  };
 
   return (
     <header className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 bg-white">
@@ -37,7 +59,7 @@ export function Topbar({ title = "Dashboard" }) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 relative">
         {/* Notification bell */}
         <button
           type="button"
@@ -52,6 +74,54 @@ export function Topbar({ title = "Dashboard" }) {
             </span>
           )}
         </button>
+
+        {/* Notification Panel */}
+        {showNotifications && (
+          <div className="absolute right-0 top-14 w-80 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+            <div className="border-b border-slate-200 px-4 py-3">
+              <h3 className="text-sm font-semibold text-[var(--color-text)]">Notifications</h3>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="px-4 py-6 text-center">
+                  <p className="text-sm text-slate-500">No notifications yet</p>
+                </div>
+              ) : (
+                notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition ${
+                      !notif.read ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div
+                        className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                          notif.severity === 'critical'
+                            ? 'bg-rose-500'
+                            : notif.severity === 'warning'
+                            ? 'bg-amber-500'
+                            : 'bg-green-500'
+                        }`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--color-text)]">
+                          {notif.title}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {notif.message}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {notif.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Admin avatar + name */}
         <div className="flex items-center gap-3 pl-1">

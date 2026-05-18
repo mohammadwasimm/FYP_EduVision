@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { validateName, validateRollNumber, validateEmail, validateClassName } from "../../utils/validation";
 
 export function StudentsModals({
   isModalOpen,
@@ -18,6 +19,87 @@ export function StudentsModals({
   submittedPapers,
   loading = false,
 }) {
+  const [realTimeErrors, setRealTimeErrors] = useState({});
+
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setFormValues((v) => ({ ...v, name: value }));
+
+    if (value.trim()) {
+      const validation = validateName(value);
+      setRealTimeErrors(prev => ({
+        ...prev,
+        name: validation.valid ? undefined : validation.error
+      }));
+    } else {
+      setRealTimeErrors(prev => ({
+        ...prev,
+        name: undefined
+      }));
+    }
+  };
+
+  const handleRollNumberChange = (e) => {
+    const value = e.target.value;
+    setFormValues((v) => ({ ...v, rollNumber: value }));
+
+    if (value.trim()) {
+      const validation = validateRollNumber(value);
+      setRealTimeErrors(prev => ({
+        ...prev,
+        rollNumber: validation.valid ? undefined : validation.error
+      }));
+    } else {
+      setRealTimeErrors(prev => ({
+        ...prev,
+        rollNumber: undefined
+      }));
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setFormValues((v) => ({ ...v, email: value }));
+
+    if (value.trim()) {
+      const validation = validateEmail(value);
+      setRealTimeErrors(prev => ({
+        ...prev,
+        email: validation.valid ? undefined : validation.error
+      }));
+    } else {
+      setRealTimeErrors(prev => ({
+        ...prev,
+        email: undefined
+      }));
+    }
+  };
+
+  const handleClassNameChange = (e) => {
+    const value = e.target.value;
+    setFormValues((v) => ({ ...v, className: value }));
+
+    if (value.trim()) {
+      const validation = validateClassName(value);
+      setRealTimeErrors(prev => ({
+        ...prev,
+        className: validation.valid ? undefined : validation.error
+      }));
+    } else {
+      setRealTimeErrors(prev => ({
+        ...prev,
+        className: undefined
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      setRealTimeErrors({});
+    }
+  }, [isModalOpen]);
+
+  const mergedErrors = { ...realTimeErrors, ...formErrors };
   return (
     <>
       <Modal
@@ -37,40 +119,32 @@ export function StudentsModals({
         <form onSubmit={handleAddStudent} className="space-y-4">
           <Input
             label="Name *"
-            placeholder="Enter student name"
+            placeholder="Enter student name (letters only)"
             value={formValues.name}
-            error={formErrors?.name}
-            onChange={(e) => {
-              setFormValues((v) => ({ ...v, name: e.target.value }));
-            }}
+            error={mergedErrors?.name}
+            onChange={handleNameChange}
           />
           <Input
             label="Roll Number *"
-            placeholder="Enter roll number"
+            placeholder="Enter roll number (alphanumeric, no names)"
             value={formValues.rollNumber}
-            error={formErrors?.rollNumber || formErrors?.["roll-number"]}
-            onChange={(e) => {
-              setFormValues((v) => ({ ...v, rollNumber: e.target.value }));
-            }}
+            error={mergedErrors?.rollNumber || mergedErrors?.["roll-number"]}
+            onChange={handleRollNumberChange}
           />
           <Input
             label="Class *"
             placeholder="e.g., Class 12A"
             value={formValues.className}
-            error={formErrors?.className || formErrors?.["class-name"]}
-            onChange={(e) => {
-              setFormValues((v) => ({ ...v, className: e.target.value }));
-            }}
+            error={mergedErrors?.className || mergedErrors?.["class-name"]}
+            onChange={handleClassNameChange}
           />
           <Input
             label="Email (optional)"
             type="email"
             placeholder="student@example.com"
             value={formValues.email}
-            error={formErrors?.email}
-            onChange={(e) => {
-              setFormValues((v) => ({ ...v, email: e.target.value }));
-            }}
+            error={mergedErrors?.email}
+            onChange={handleEmailChange}
           />
 
           <div className="mt-2 flex justify-end gap-2 pt-2">

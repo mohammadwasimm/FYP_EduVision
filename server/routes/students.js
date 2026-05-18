@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db/database');
 const { addExam } = require('./exams');
+const { validateStudentData } = require('../utils/validation');
 
 const router = express.Router();
 router.use(express.text({ type: ['text/csv', 'text/plain'], limit: '5mb' }));
@@ -54,8 +55,10 @@ router.post('/', (req, res) => {
   const className  = (raw.className || raw['class-name'] || '').trim();
   const email      = (raw.email || '').trim();
 
-  if (!name || !rollNumber || !className)
-    return res.status(400).json({ error: 'Missing required fields: name, rollNumber, className' });
+  const validation = validateStudentData({ name, rollNumber, className, email });
+  if (!validation.valid) {
+    return res.status(400).json({ error: 'Validation failed', errors: validation.errors });
+  }
 
   const dup = db.prepare('SELECT id FROM students WHERE lower(rollNumber)=lower(?)').get(rollNumber);
   if (dup) return res.status(400).json({ error: `Roll number '${rollNumber}' already exists` });
@@ -88,7 +91,13 @@ router.post('/import', (req, res) => {
     const className  = (obj.className||'').trim();
     const email      = (obj.email||'').trim();
 
-    if (!name||!rollNumber||!className) { errors.push({row:idx+1,error:'Missing required fields',raw:obj}); return; }
+    const validation = validateStudentData({ name, rollNumber, className, email });
+    if (!validation.valid) {
+      const errorMsg = Object.entries(validation.errors).map(([field, msg]) => `${field}: ${msg}`).join('; ');
+      errors.push({row:idx+1, error: errorMsg, raw:obj});
+      return;
+    }
+
     if (db.prepare('SELECT id FROM students WHERE lower(rollNumber)=lower(?)').get(rollNumber)) {
       errors.push({row:idx+1,error:`Duplicate rollNumber ${rollNumber}`,raw:obj}); return;
     }
@@ -136,6 +145,11 @@ router.put('/:id', (req, res) => {
   const rollNumber = (raw.rollNumber || raw['roll-number'] || row.rollNumber).trim();
   const className  = (raw.className || raw['class-name'] || row.className).trim();
   const email      = raw.email !== undefined ? raw.email.trim() : row.email;
+
+  const validation = validateStudentData({ name, rollNumber, className, email });
+  if (!validation.valid) {
+    return res.status(400).json({ error: 'Validation failed', errors: validation.errors });
+  }
 
   // duplicate rollNumber check (exclude self)
   const dup = db.prepare('SELECT id FROM students WHERE lower(rollNumber)=lower(?) AND id!=?').get(rollNumber, id);

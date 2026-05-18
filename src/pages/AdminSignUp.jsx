@@ -13,9 +13,17 @@ export function AdminSignUp() {
   const [confirm, setConfirm] = useState("");
   const redirectToDashboard = useAuthRedirect();
 
+  const validateEmail = (e) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(e);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!fullName || !email || !password) return toast.error('Please fill required fields');
+    if (fullName.trim().length < 3) return toast.error('Full name must be at least 3 characters');
+    if (!validateEmail(email)) return toast.error('Please enter a valid email address');
+    if (password.length < 6) return toast.error('Password must be at least 6 characters');
     if (password !== confirm) return toast.error('Passwords do not match');
     try {
       const res = await signup({ fullName, email, password });
@@ -39,7 +47,7 @@ export function AdminSignUp() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Input
-              label="Full Name"
+              label={<span>Full Name <span className="text-red-500">*</span></span>}
               placeholder="Enter your full name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -47,7 +55,7 @@ export function AdminSignUp() {
           </div>
           <div>
             <Input
-              label="Email Address"
+              label={<span>Email Address <span className="text-red-500">*</span></span>}
               placeholder="admin@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -55,7 +63,7 @@ export function AdminSignUp() {
           </div>
           <div>
             <Input
-              label="Password"
+              label={<span>Password <span className="text-red-500">*</span></span>}
               type="password"
               placeholder="Create a strong password"
               value={password}
@@ -64,7 +72,7 @@ export function AdminSignUp() {
           </div>
           <div>
             <Input
-              label="Confirm Password"
+              label={<span>Confirm Password <span className="text-red-500">*</span></span>}
               type="password"
               placeholder="Confirm your password"
               value={confirm}

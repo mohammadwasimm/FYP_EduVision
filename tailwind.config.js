@@ -3,8 +3,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['system-ui', 'ui-sans-serif', 'sans-serif'],
-        body: ['system-ui', 'ui-sans-serif', 'sans-serif'],
+        display: ['DM Sans', 'system-ui', 'ui-sans-serif', 'sans-serif'],
+        body: ['DM Sans', 'system-ui', 'ui-sans-serif', 'sans-serif'],
       },
       colors: {
         // Brand

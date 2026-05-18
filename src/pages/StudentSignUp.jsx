@@ -27,19 +27,19 @@ export function StudentSignUp() {
         <p className="text-sm text-slate-600 mb-6">Set up your student account to get started</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1">Full Name</label>
+            <label className="block text-sm mb-1">Full Name <span className="text-red-500">*</span></label>
             <Input placeholder="Enter your full name" value={fullName} onChange={(e)=>setFullName(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm mb-1">Email Address</label>
+            <label className="block text-sm mb-1">Email Address <span className="text-red-500">*</span></label>
             <Input placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm mb-1">Password</label>
+            <label className="block text-sm mb-1">Password <span className="text-red-500">*</span></label>
             <Input type="password" placeholder="Create a strong password" value={password} onChange={(e)=>setPassword(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm mb-1">Confirm Password</label>
+            <label className="block text-sm mb-1">Confirm Password <span className="text-red-500">*</span></label>
             <Input type="password" placeholder="Confirm your password" value={confirm} onChange={(e)=>setConfirm(e.target.value)} />
           </div>
           <Button type="primary" htmlType="submit" className="w-full">Sign Up</Button>

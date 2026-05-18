@@ -31,6 +31,9 @@ export const settingsApi = {
   update: (data: SettingsPayload) => settingsClient.put('/api/settings', data),
   changePassword: (data: ChangePasswordPayload) => settingsClient.put('/api/settings/password', data),
   clearIncidents: (days: number) => settingsClient.post('/api/settings/clear-incidents', { days }),
+  uploadProfilePicture: (formData: FormData) => settingsClient.post('/api/settings/profile-picture', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export default settingsClient;

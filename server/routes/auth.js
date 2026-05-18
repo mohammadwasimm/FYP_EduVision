@@ -46,9 +46,29 @@ router.get('/me', (req, res) => {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
-  const row = db.prepare('SELECT id, fullName, email FROM admins WHERE id = ?').get(payload.id);
+  const row = db.prepare('SELECT id, fullName, email, profile_picture FROM admins WHERE id = ?').get(payload.id);
   if (!row) return res.status(404).json({ error: 'Admin not found' });
-  res.json({ data: { id: row.id, fullName: row.fullName, email: row.email } });
+  res.json({ data: { id: row.id, fullName: row.fullName, email: row.email, profilePicture: row.profile_picture } });
+});
+
+// GET /api/auth/profile — returns profile of the currently signed-in admin (alias for /me)
+router.get('/profile', (req, res) => {
+  const header = req.headers.authorization || '';
+  const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return res.status(401).json({ error: 'Invalid token' });
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const row = db.prepare('SELECT id, fullName, email, profile_picture FROM admins WHERE id = ?').get(payload.id);
+  if (!row) return res.status(404).json({ error: 'Admin not found' });
+  res.json({ data: { id: row.id, fullName: row.fullName, email: row.email, profilePicture: row.profile_picture } });
 });
 
 // POST /api/auth/signup
@@ -62,10 +82,10 @@ router.post('/signup', (req, res) => {
     if (existing) return res.status(409).json({ error: 'Admin with this email already exists' });
 
     const hashed = hashPassword(password);
-    const result = db.prepare('INSERT INTO admins (fullName, email, password) VALUES (?,?,?)')
-      .run(fullName, email, JSON.stringify(hashed));
+    const result = db.prepare('INSERT INTO admins (fullName, email, password, profile_picture) VALUES (?,?,?,?)')
+      .run(fullName, email, JSON.stringify(hashed), null);
 
-    const admin = { id: result.lastInsertRowid, fullName, email };
+    const admin = { id: result.lastInsertRowid, fullName, email, profilePicture: null };
     const token = jwtSign({ id: admin.id, email });
     res.status(201).json({ admin, token });
   } catch (err) {
@@ -98,7 +118,7 @@ router.post('/signin', (req, res) => {
       }
     }
 
-    const admin = { id: row.id, fullName: row.fullName, email: row.email };
+    const admin = { id: row.id, fullName: row.fullName, email: row.email, profilePicture: row.profile_picture };
     const token = jwtSign({ id: row.id, email: row.email });
     res.json({ admin, token });
   } catch (err) {

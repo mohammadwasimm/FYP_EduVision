@@ -1,9 +1,43 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const db = require('../db/database');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { verifyJwt } = require('../middleware/auth');
 
 const router = express.Router();
+
+// ── Profile Picture Upload Setup ───────────────────────────────────────
+const uploadDir = path.resolve(__dirname, '..', 'data', 'uploads', 'profiles');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename: admin-{id}-{timestamp}.ext
+    const ext = path.extname(file.originalname);
+    const timestamp = Date.now();
+    cb(null, `admin-${timestamp}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const validMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (validMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
 
 function getSettings() {
   const row = db.prepare('SELECT data FROM settings WHERE id=1').get();
@@ -79,6 +113,82 @@ router.put('/password', (req, res) => {
     .run(JSON.stringify(hashPassword(newPassword)), resolvedEmail);
 
   res.json({ message: 'Password updated successfully' });
+});
+
+// POST /api/settings/profile-picture
+router.post('/profile-picture', upload.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Get admin email from JWT
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const claims = verifyJwt(token);
+    const adminEmail = claims?.email;
+
+    if (!adminEmail) {
+      // Clean up uploaded file if auth fails
+      fs.unlinkSync(req.file.path);
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Find admin by email
+    const admin = db.prepare('SELECT id FROM admins WHERE email=?').get(adminEmail);
+    if (!admin) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    // Generate the image URL (relative to the server root)
+    const imageUrl = `/uploads/profiles/${req.file.filename}`;
+
+    // Delete old profile picture if it exists
+    const oldAdmin = db.prepare('SELECT profile_picture FROM admins WHERE id=?').get(admin.id);
+    if (oldAdmin?.profile_picture) {
+      const oldPath = oldAdmin.profile_picture.replace('/uploads/profiles/', '');
+      const fullOldPath = path.join(uploadDir, oldPath);
+      try {
+        if (fs.existsSync(fullOldPath)) {
+          fs.unlinkSync(fullOldPath);
+        }
+      } catch (e) {
+        console.warn('Failed to delete old profile picture:', e);
+      }
+    }
+
+    // Update admin's profile picture in database
+    db.prepare('UPDATE admins SET profile_picture=? WHERE id=?')
+      .run(imageUrl, admin.id);
+
+    res.json({
+      success: true,
+      data: {
+        profilePicture: imageUrl
+      }
+    });
+  } catch (error) {
+    console.error('Profile picture upload error:', error);
+
+    // Clean up uploaded file on error
+    if (req.file?.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.warn('Failed to clean up uploaded file:', e);
+      }
+    }
+
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File size exceeds 5MB limit' });
+      }
+      return res.status(400).json({ error: `Upload error: ${error.message}` });
+    }
+
+    res.status(500).json({ error: error.message || 'Failed to upload profile picture' });
+  }
 });
 
 module.exports = router;

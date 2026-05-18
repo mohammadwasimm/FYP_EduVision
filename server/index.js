@@ -95,8 +95,9 @@ else {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve snapshot images statically
+// Serve snapshot images and uploads statically
 app.use('/snapshots', express.static(path.resolve(__dirname, 'data', 'snapshots')));
+app.use('/uploads', express.static(path.resolve(__dirname, 'data', 'uploads')));
 
 // ── Public routes (no auth required) ──────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'edu-vision-backend' }));

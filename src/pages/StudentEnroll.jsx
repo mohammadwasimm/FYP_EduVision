@@ -83,12 +83,23 @@ export function StudentEnroll() {
 
         // ── Guard: scheduled date/time ───────────────────────────────────
         const scheduledAt = found.instance.scheduledAt || found.paper?.scheduledAt || null;
+        const duration = found.instance.duration || found.paper?.duration || 0;
         if (scheduledAt) {
           const scheduled = new Date(scheduledAt);
-          if (!isNaN(scheduled.getTime()) && Date.now() < scheduled.getTime()) {
+          const now = Date.now();
+
+          // Check if exam hasn't started yet
+          if (!isNaN(scheduled.getTime()) && now < scheduled.getTime()) {
             const dateStr = scheduled.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
             const timeStr = scheduled.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             toast.info(`The exam will start on ${dateStr} at ${timeStr}.`, { autoClose: false });
+            return;
+          }
+
+          // Check if exam has already finished (scheduled time + duration)
+          const examEndTime = new Date(scheduled.getTime() + (duration * 60 * 1000));
+          if (!isNaN(examEndTime.getTime()) && now > examEndTime.getTime()) {
+            toast.error('This exam has already ended. You cannot access it anymore.', { autoClose: false });
             return;
           }
         }
@@ -162,7 +173,9 @@ export function StudentEnroll() {
 
   const handleStudentLogin = async (e) => {
     e.preventDefault();
-    if (!studentLoginId) return toast.error("Please enter your student ID");
+    if (!studentLoginId || !studentPassword) return toast.error("Please enter your student ID and password");
+    if (studentLoginId.trim().length < 3) return toast.error("Student ID must be at least 3 characters");
+    if (studentPassword.length < 6) return toast.error("Password must be at least 6 characters");
 
     try {
       setLoggingIn(true);
@@ -226,13 +239,24 @@ export function StudentEnroll() {
             }
 
             const scheduledAt = found.instance.scheduledAt || found.paper?.scheduledAt || null;
+            const duration = found.instance.duration || found.paper?.duration || 0;
             if (scheduledAt) {
               const scheduled = new Date(scheduledAt);
-              if (!isNaN(scheduled.getTime()) && Date.now() < scheduled.getTime()) {
+              const now = Date.now();
+
+              // Check if exam hasn't started yet
+              if (!isNaN(scheduled.getTime()) && now < scheduled.getTime()) {
                 const dateStr = scheduled.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
                 const timeStr = scheduled.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 const title = found.paper?.title ? `"${found.paper.title}"` : 'Your exam';
                 toast.info(`${dateStr} at ${timeStr} — ${title} will start.`, { autoClose: false });
+                return;
+              }
+
+              // Check if exam has already finished (scheduled time + duration)
+              const examEndTime = new Date(scheduled.getTime() + (duration * 60 * 1000));
+              if (!isNaN(examEndTime.getTime()) && now > examEndTime.getTime()) {
+                toast.error('This exam has already ended. You cannot access it anymore.', { autoClose: false });
                 return;
               }
             }
@@ -383,7 +407,7 @@ export function StudentEnroll() {
             <form onSubmit={handleStudentLogin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-                  Student ID
+                  Student ID <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Enter your Student ID"
@@ -394,7 +418,7 @@ export function StudentEnroll() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-                  Password (if required)
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="password"

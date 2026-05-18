@@ -8,6 +8,7 @@ import { FiPlus } from "react-icons/fi";
 import { StudentsModals } from "../../components/students/StudentsModals";
 import { ConfirmationModal } from "../../components/ui/ConfirmationModal";
 import { fetchStudents, fetchStudentById, createStudent, updateStudent, deleteStudent, fetchStudentAssignments, setSearchQuery, importStudents } from "./stores/actions";
+import { validateStudentDataRequired } from "../../utils/validation";
 import columnsFactory from './columns';
 
 export function Students() {
@@ -33,6 +34,7 @@ export function Students() {
   const [studentToDelete, setStudentToDelete] = useState(null);
   const defaultFormValues = { name: "", rollNumber: "", className: "", email: "" };
   const [formValues, setFormValues] = useState(defaultFormValues);
+  const [formValidationErrors, setFormValidationErrors] = useState({});
  
 
 
@@ -58,6 +60,22 @@ export function Students() {
   const handleAddStudent = async (e) => {
     e.preventDefault();
 
+    const validation = validateStudentDataRequired({
+      name: formValues.name,
+      rollNumber: formValues.rollNumber,
+      className: formValues.className,
+      email: formValues.email || "",
+    });
+
+    if (!validation.valid) {
+      setFormValidationErrors(validation.errors);
+      const errorMessages = Object.values(validation.errors).join("; ");
+      toast.error(errorMessages);
+      return;
+    }
+
+    setFormValidationErrors({});
+
     try {
       if (editingKey) {
         await updateStudent(editingKey, {
@@ -81,11 +99,14 @@ export function Students() {
 
       setEditingKey(null);
       setFormValues(defaultFormValues);
+      setFormValidationErrors({});
       setIsModalOpen(false);
     } catch (error) {
-      if (editingKey) {
-  toast.error(error?.message || "Failed to update student. Please try again.");
+      const errorData = error?.data?.errors || error?.data?.error;
+      if (typeof errorData === 'object' && !Array.isArray(errorData)) {
+        setFormValidationErrors(errorData);
       }
+      toast.error(error?.message || "Failed to save student. Please try again.");
     }
   };
 
@@ -257,7 +278,7 @@ export function Students() {
         setEditingKey={setEditingKey}
         formValues={formValues}
         setFormValues={setFormValues}
-        formErrors={createStudentError}
+        formErrors={{ ...createStudentError, ...formValidationErrors }}
         handleAddStudent={handleAddStudent}
         isSubmittedModalOpen={isSubmittedModalOpen}
         setIsSubmittedModalOpen={setIsSubmittedModalOpen}

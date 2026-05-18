@@ -80,13 +80,16 @@ router.post('/', (req, res) => {
 
 // ─── POST /api/exams/papers ────────────────────────────────────────────────
 router.post('/papers', (req, res) => {
-  const { title, subject, scheduledAt, studentIds, timeLimitMinutes, totalQuestions } = req.body || {};
+  const { title, subject, scheduledAt, studentIds, timeLimitMinutes, duration, totalQuestions } = req.body || {};
   if (!title || !subject || !Array.isArray(studentIds) || !studentIds.length)
     return res.status(400).json({ error: 'Missing required fields: title, subject, studentIds' });
 
+  // Use duration from request, fallback to timeLimitMinutes, default to 60
+  const durationMinutes = duration || timeLimitMinutes || 60;
+
   const examId = nextExamId();
   db.prepare('INSERT INTO exams (id,title,subject,totalQuestions,timeLimitMinutes,scheduledAt) VALUES (?,?,?,?,?,?)')
-    .run(examId, title, subject, totalQuestions||0, timeLimitMinutes||60, scheduledAt||null);
+    .run(examId, title, subject, totalQuestions||0, durationMinutes, scheduledAt||null);
 
   const exam = rowToExam(db.prepare('SELECT * FROM exams WHERE id=?').get(examId));
   const instances = [];
@@ -96,8 +99,8 @@ router.post('/papers', (req, res) => {
     const sCode = student?.studentId || sid;
     const link = `https://edu-vision.exam/${encodeURIComponent(title.replace(/\s+/g,'-').toLowerCase())}/${examId}/${sCode.toLowerCase()}`;
     const instId = nextInstanceId();
-    db.prepare('INSERT INTO exam_instances (id,examId,studentId,link,scheduledAt,status) VALUES (?,?,?,?,?,?)')
-      .run(instId, examId, sid, link, scheduledAt||null, 'created');
+    db.prepare('INSERT INTO exam_instances (id,examId,studentId,link,scheduledAt,duration,status) VALUES (?,?,?,?,?,?,?)')
+      .run(instId, examId, sid, link, scheduledAt||null, durationMinutes, 'created');
     instances.push(rowToInstance(db.prepare('SELECT * FROM exam_instances WHERE id=?').get(instId)));
   });
 

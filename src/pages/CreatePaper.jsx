@@ -28,6 +28,7 @@ export function CreatePaper() {
     subject: "",
     date: "",
     time: "",
+    duration: "", // in minutes
   });
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [generatedLinks, setGeneratedLinks] = useState([]);
@@ -140,7 +141,7 @@ export function CreatePaper() {
   };
 
   const handleReset = () => {
-    setPaper({ name: "", subject: "", date: "", time: "" });
+    setPaper({ name: "", subject: "", date: "", time: "", duration: "" });
     setSelectedKeys([]);
     setSelectedStudentsMap({});
     setGeneratedLinks([]);
@@ -182,8 +183,16 @@ export function CreatePaper() {
   };
 
   const handleCreatePaper = async () => {
-    if (!paper.name || !paper.subject || !paper.date || !paper.time) {
-      toast.error('Please fill all required paper details.');
+    if (!paper.name || !paper.subject || !paper.date || !paper.time || !paper.duration) {
+      toast.error('Please fill all required paper details including exam duration.');
+      return;
+    }
+    if (paper.name.trim().length < 3) {
+      toast.error('Paper name must be at least 3 characters.');
+      return;
+    }
+    if (parseInt(paper.duration) <= 0) {
+      toast.error('Exam duration must be greater than 0 minutes.');
       return;
     }
     if (!selectedKeys.length) {
@@ -198,12 +207,19 @@ export function CreatePaper() {
     const scheduled = `${paper.date} ${paper.time}`;
     const scheduledAt = new Date(`${paper.date}T${paper.time}:00`).toISOString();
 
+    // Validate that the scheduled date is not in the past
+    if (new Date(scheduledAt) < new Date()) {
+      toast.error('Exam cannot be scheduled in the past. Please select a future date and time.');
+      return;
+    }
+
     try {
       setCreatingPaper(true);
       const createResponse = await examsApi.createPaper({
         title: paper.name,
         subject: paper.subject,
         scheduledAt,
+        duration: parseInt(paper.duration),
         studentIds: selectedKeys,
       });
 
@@ -337,7 +353,7 @@ export function CreatePaper() {
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <Input
-              label="Paper Name *"
+              label={<span>Paper Name <span className="text-red-500">*</span></span>}
               placeholder="e.g., Mathematics Final Exam"
               value={paper.name}
               onChange={(e) =>
@@ -346,7 +362,7 @@ export function CreatePaper() {
             />
             <div className="space-y-1">
               <Dropdown
-                label="Subject *"
+                label={<span>Subject <span className="text-red-500">*</span></span>}
                 className="mb-0"
                 options={subjectOptions.length > 1 ? subjectOptions : [{ label: 'Loading subjects…', value: '' }]}
                 value={paper.subject}
@@ -356,7 +372,7 @@ export function CreatePaper() {
               />
             </div>
             <Input
-              label="Scheduled Date *"
+              label={<span>Scheduled Date <span className="text-red-500">*</span></span>}
               type="date"
               value={paper.date}
               onChange={(e) =>
@@ -364,11 +380,21 @@ export function CreatePaper() {
               }
             />
             <Input
-              label="Scheduled Time *"
+              label={<span>Scheduled Time <span className="text-red-500">*</span></span>}
               type="time"
               value={paper.time}
               onChange={(e) =>
                 setPaper((p) => ({ ...p, time: e.target.value }))
+              }
+            />
+            <Input
+              label={<span>Exam Duration (minutes) <span className="text-red-500">*</span></span>}
+              type="number"
+              placeholder="e.g., 30"
+              min="1"
+              value={paper.duration}
+              onChange={(e) =>
+                setPaper((p) => ({ ...p, duration: e.target.value }))
               }
             />
           </div>
