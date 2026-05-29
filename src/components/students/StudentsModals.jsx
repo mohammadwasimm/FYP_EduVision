@@ -68,6 +68,7 @@ export function StudentsModals({
         email: validation.valid ? undefined : validation.error
       }));
     } else {
+      // Email is optional, so no error when empty
       setRealTimeErrors(prev => ({
         ...prev,
         email: undefined
@@ -99,7 +100,18 @@ export function StudentsModals({
     }
   }, [isModalOpen]);
 
-  const mergedErrors = { ...realTimeErrors, ...formErrors };
+  // Prioritize real-time errors over parent form errors
+  const mergedErrors = (() => {
+    const merged = { ...formErrors };
+    Object.keys(realTimeErrors).forEach(key => {
+      if (realTimeErrors[key] !== undefined) {
+        merged[key] = realTimeErrors[key];
+      } else {
+        delete merged[key];
+      }
+    });
+    return merged;
+  })();
   return (
     <>
       <Modal
