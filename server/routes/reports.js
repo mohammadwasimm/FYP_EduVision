@@ -80,8 +80,123 @@ router.post('/', (req, res) => {
         raw.mobileDetected||'No', raw.headMovement||'Normal', raw.eyeMovement||'Unknown', raw.headPose||'Unknown');
   const inc = db.prepare('SELECT * FROM incidents WHERE id=?').get(id);
   if (global._io) global._io.emit('new_incident', inc);
+
+  // Trigger notifications based on settings
+  notifyAdmins(inc).catch(err => console.error('Notification error:', err));
+
   res.status(201).json({ data: inc });
 });
+
+// Helper function to send notifications to admins
+async function notifyAdmins(incident) {
+  try {
+    // Get settings and all admins
+    const settingsRow = db.prepare('SELECT data FROM settings WHERE id=1').get();
+    let settings = {};
+    try { settings = JSON.parse(settingsRow?.data || '{}'); } catch(e) {}
+
+    const admins = db.prepare('SELECT email, fullName FROM admins').all() || [];
+
+    const notifyPrefs = settings.notifications || {};
+
+    // Check if we should send notifications
+    const shouldNotifyEmail = notifyPrefs.emailAlerts && (!notifyPrefs.criticalOnly || incident.severity === 'high');
+    const shouldNotifyDaily = notifyPrefs.dailyDigest;
+    const shouldPlaySound = notifyPrefs.soundAlerts;
+
+    // Emit sound alert via Socket.io if enabled
+    if (shouldPlaySound && global._io) {
+      global._io.emit('sound_alert', {
+        incidentId: incident.id,
+        severity: incident.severity,
+        studentName: incident.studentName
+      });
+    }
+
+    // Send email alerts (if SMTP is configured)
+    if (shouldNotifyEmail && admins.length > 0) {
+      const adminEmails = admins.map(a => a.email).filter(Boolean);
+      if (adminEmails.length > 0 && process.env.SMTP_ENABLED === 'true') {
+        sendEmailAlerts(adminEmails, incident).catch(err =>
+          console.error('Email alert failed:', err)
+        );
+      }
+    }
+
+    // Note: Daily digest would be handled by a scheduled job (e.g., cron)
+    // not triggered per-incident
+
+  } catch (err) {
+    console.error('Error in notifyAdmins:', err);
+  }
+}
+
+// Helper function to send email alerts
+async function sendEmailAlerts(emails, incident) {
+  try {
+    const nodemailer = require('nodemailer');
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      }
+    });
+
+    const severityColor = {
+      high: '#dc2626',
+      medium: '#f59e0b',
+      low: '#10b981'
+    }[incident.severity] || '#6b7280';
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(to right, #667eea, #764ba2); padding: 20px; color: white; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">🚨 New Incident Alert</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px;">
+          <div style="background: white; padding: 15px; border-left: 4px solid ${severityColor}; margin-bottom: 15px;">
+            <p style="margin: 0 0 10px 0;"><strong>Student:</strong> ${incident.studentName || 'Unknown'}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Roll Number:</strong> ${incident.rollNumber || '—'}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Exam:</strong> ${incident.exam || '—'}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Cheating Type:</strong> ${incident.cheatingType || '—'}</p>
+            <p style="margin: 0;"><strong>Severity:</strong> <span style="color: ${severityColor}; font-weight: bold; text-transform: uppercase;">${incident.severity}</span></p>
+          </div>
+          <div style="background: white; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+            <p style="margin: 0 0 10px 0; color: #666;"><strong>Detected Issues:</strong></p>
+            <ul style="margin: 5px 0; padding-left: 20px; color: #666;">
+              ${incident.mobileDetected === 'Yes' ? '<li>Mobile phone detected</li>' : ''}
+              ${incident.headMovement === 'Critical' ? '<li>Critical head movement</li>' : incident.headMovement === 'Warning' ? '<li>Head movement warning</li>' : ''}
+              ${incident.eyeMovement && incident.eyeMovement !== 'Looking Center' ? `<li>Eye movement: ${incident.eyeMovement}</li>` : ''}
+              ${incident.headPose && incident.headPose !== 'Looking at Screen' ? `<li>Head pose: ${incident.headPose}</li>` : ''}
+            </ul>
+          </div>
+          <p style="text-align: center; margin-top: 20px;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/reports"
+               style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              View in Dashboard
+            </a>
+          </p>
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: emails.join(','),
+      subject: `[${incident.severity.toUpperCase()}] Incident Alert: ${incident.studentName || 'Unknown Student'} - ${incident.cheatingType || 'Exam Violation'}`,
+      html: htmlContent
+    });
+
+    console.log(`Email alert sent to ${emails.length} admin(s)`);
+  } catch (err) {
+    console.error('Failed to send email alerts:', err.message);
+    // Non-fatal error — don't break incident creation
+  }
+}
 
 // ─── DELETE /api/reports/:id ───────────────────────────────────────────────
 router.delete('/:id', (req, res) => {
