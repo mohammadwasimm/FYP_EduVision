@@ -165,6 +165,37 @@ router.get('/instances/by-link', (req, res) => {
     });
   }
 
+  // ── Guard: session already completed/expired ───────────────────────────────
+  if (match.status === 'completed' || match.status === 'expired') {
+    const completedAt = match.completedAt ? new Date(match.completedAt) : null;
+    const completionTime = completedAt ? completedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+    return res.status(403).json({
+      error: 'session_expired',
+      message: `Your exam session has already ended${completionTime ? ` at ${completionTime}` : ''}. You cannot re-enter this exam.`,
+      status: match.status,
+    });
+  }
+
+  // ── Guard: check if student has other active/expired sessions for this exam ──
+  const studentId = match.studentId;
+  if (studentId) {
+    const otherExpiredSession = db.prepare(`
+      SELECT * FROM exam_instances
+      WHERE examId = ? AND studentId = ? AND status IN ('expired', 'completed', 'terminated') AND id != ?
+      LIMIT 1
+    `).get(match.examId, studentId, match.id);
+
+    if (otherExpiredSession) {
+      const completedAt = otherExpiredSession.completedAt ? new Date(otherExpiredSession.completedAt) : null;
+      const completionTime = completedAt ? completedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+      return res.status(403).json({
+        error: 'exam_already_attempted',
+        message: `You have already attempted this exam${completionTime ? ` at ${completionTime}` : ''}. You cannot take it again.`,
+        status: otherExpiredSession.status,
+      });
+    }
+  }
+
   // ── Guard: exam not yet scheduled ──────────────────────────────────────────
   const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(match.examId);
   const scheduledAt = match.scheduledAt || exam?.scheduledAt || null;
@@ -195,9 +226,18 @@ router.get('/instances/by-link', (req, res) => {
 router.post('/instances/:id/start', (req, res) => {
   const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(req.params.id);
   if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  // ── Guard: check session status ────────────────────────────────────────────
   if (inst.status === 'terminated') {
-    return res.status(403).json({ error: 'terminated', message: 'Session has been terminated.' });
+    return res.status(403).json({ error: 'terminated', message: 'Your session has been terminated by the administrator.' });
   }
+  if (inst.status === 'expired' || inst.status === 'completed') {
+    return res.status(403).json({
+      error: 'session_expired',
+      message: 'Your exam session has already ended. You cannot re-enter this exam.',
+    });
+  }
+
   db.prepare(`UPDATE exam_instances SET status='active', startedAt=COALESCE(startedAt, datetime('now')) WHERE id=?`).run(req.params.id);
   res.json({ data: rowToInstance(db.prepare('SELECT * FROM exam_instances WHERE id=?').get(req.params.id)) });
 });
@@ -219,6 +259,28 @@ router.post('/instances/:id/terminate', (req, res) => {
       message: 'Your session has been terminated by the administrator.',
     });
   }
+
+  const updated = rowToInstance(db.prepare('SELECT * FROM exam_instances WHERE id=?').get(req.params.id));
+  res.json({ data: updated });
+});
+
+// ─── POST /api/exams/instances/:id/expire ────────────────────────────────
+// Mark a session as expired when time runs out on the student's device.
+// Prevents re-access to the same exam instance.
+router.post('/instances/:id/expire', (req, res) => {
+  const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(req.params.id);
+  if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  // Only allow expiration if session is still active
+  if (inst.status !== 'active' && inst.status !== 'created') {
+    return res.status(400).json({
+      error: 'invalid_state',
+      message: `Cannot expire a session with status '${inst.status}'`,
+    });
+  }
+
+  db.prepare(`UPDATE exam_instances SET status='expired', completedAt=datetime('now') WHERE id=?`)
+    .run(req.params.id);
 
   const updated = rowToInstance(db.prepare('SELECT * FROM exam_instances WHERE id=?').get(req.params.id));
   res.json({ data: updated });
@@ -270,6 +332,14 @@ router.post('/instances/:id/answer', (req, res) => {
 
   const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(id);
   if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  // ── Guard: prevent answers after session expired/completed ─────────────────
+  if (inst.status === 'terminated' || inst.status === 'expired' || inst.status === 'completed') {
+    return res.status(403).json({
+      error: 'session_expired',
+      message: 'Your exam session has expired. You cannot submit more answers.',
+    });
+  }
 
   // find question
   const questions = db.prepare('SELECT * FROM exam_questions WHERE examId=? ORDER BY sortOrder').all(inst.examId);

@@ -100,6 +100,8 @@ export const examsApi = {
   startInstance: (instanceId: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/start`),
   // Admin force-terminates a student session
   terminateInstance: (instanceId: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/terminate`),
+  // Mark a session as expired when time runs out
+  expireInstance: (instanceId: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/expire`),
 };
 
 export default examsClient;

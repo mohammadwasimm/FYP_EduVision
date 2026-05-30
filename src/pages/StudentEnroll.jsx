@@ -27,6 +27,8 @@ export function StudentEnroll() {
   const [liveMetrics, setLiveMetrics] = useState(null);
   const [cameraStreamObj, setCameraStreamObj] = useState(null);
   const [snapshotUrl, setSnapshotUrl] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [timeUntilStart, setTimeUntilStart] = useState(null);
 
   useEffect(() => {
     const stateLink = location?.state?.examLink;
@@ -56,12 +58,26 @@ export function StudentEnroll() {
         } catch (err) {
           // Server returns 403 for terminated or not-yet-scheduled — handle gracefully
           const errData = err;
+          console.log("Error occurred while fetching exam by link:", errData);
           if (errData?.error === 'terminated') {
             toast.error('Your session has been terminated by the administrator. You cannot re-enter this exam.', { autoClose: false });
             return;
           }
           if (errData?.error === 'not_yet_scheduled') {
-            toast.info(errData.message || 'This exam has not started yet.', { autoClose: false });
+            const msg = errData.message || 'This exam has not started yet.';
+            setErrorMessage(msg);
+            // Store scheduled time if available in error response
+            if (errData?.scheduledAt) {
+              setPaperInstance({
+                instance: { scheduledAt: errData.scheduledAt },
+                paper: {}
+              });
+            }
+            toast.info(msg, { autoClose: false });
+            return;
+          }
+          if (errData?.error === 'session_expired') {
+            toast.error(errData.message || 'Your exam session has already ended. You cannot re-enter this exam.', { autoClose: false });
             return;
           }
           throw err;
@@ -148,6 +164,47 @@ export function StudentEnroll() {
     };
   }, [examId, autoProcessed]);
 
+  // Update countdown timer every second when there's an error message
+  useEffect(() => {
+    if (!errorMessage) {
+      setTimeUntilStart(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      // Extract scheduled time from error message or from paperInstance
+      let scheduledTime = null;
+
+      if (paperInstance?.instance?.scheduledAt) {
+        scheduledTime = new Date(paperInstance.instance.scheduledAt).getTime();
+      } else if (paperInstance?.paper?.scheduledAt) {
+        scheduledTime = new Date(paperInstance.paper.scheduledAt).getTime();
+      }
+
+      if (!scheduledTime) return;
+
+      const now = Date.now();
+      const diff = scheduledTime - now;
+
+      if (diff <= 0) {
+        setTimeUntilStart(null);
+        setErrorMessage(null);
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setTimeUntilStart({ days, hours, minutes, seconds });
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [errorMessage, paperInstance]);
+
   // called by ExamInterface with latest metrics
   const handleMetrics = async (metrics) => {
     setLiveMetrics(metrics);
@@ -223,7 +280,16 @@ export function StudentEnroll() {
               return;
             }
             if (errData?.error === 'not_yet_scheduled') {
-              toast.info(errData.message || 'This exam has not started yet.', { autoClose: false });
+              const msg = errData.message || 'This exam has not started yet.';
+              setErrorMessage(msg);
+              // Store scheduled time if available in error response
+              if (errData?.scheduledAt) {
+                setPaperInstance({
+                  instance: { scheduledAt: errData.scheduledAt },
+                  paper: {}
+                });
+              }
+              toast.info(msg, { autoClose: false });
               return;
             }
             throw err;
@@ -232,6 +298,8 @@ export function StudentEnroll() {
           const foundData = byLinkResp?.data?.data || byLinkResp?.data || null;
           if (foundData && foundData.instance) {
             const found = { paper: foundData.exam, instance: foundData.instance };
+            setErrorMessage(null);
+            setPaperInstance(null);
 
             if (found.instance.status === 'terminated') {
               toast.error('Your session has been terminated by the administrator. You cannot re-enter this exam.', { autoClose: false });
@@ -318,7 +386,20 @@ export function StudentEnroll() {
             return;
           }
           if (errData?.error === 'not_yet_scheduled') {
-            toast.info(errData.message || 'This exam has not started yet.', { autoClose: false });
+            const msg = errData.message || 'This exam has not started yet.';
+            setErrorMessage(msg);
+            // Store scheduled time if available in error response
+            if (errData?.scheduledAt) {
+              setPaperInstance({
+                instance: { scheduledAt: errData.scheduledAt },
+                paper: {}
+              });
+            }
+            toast.info(msg, { autoClose: false });
+            return;
+          }
+          if (errData?.error === 'session_expired') {
+            toast.error(errData.message || 'Your exam session has already ended. You cannot re-enter this exam.', { autoClose: false });
             return;
           }
           throw err;
@@ -330,6 +411,8 @@ export function StudentEnroll() {
           return;
         }
         const found = { paper: foundData.exam, instance: foundData.instance };
+        setErrorMessage(null);
+        setPaperInstance(null);
 
         if (found.instance.status === 'terminated') {
           toast.error('Your session has been terminated. You cannot re-enter this exam.', { autoClose: false });
@@ -337,12 +420,23 @@ export function StudentEnroll() {
         }
 
         const scheduledAt = found.instance.scheduledAt || found.paper?.scheduledAt || null;
+        const duration = found.instance.duration || found.paper?.duration || 0;
         if (scheduledAt) {
           const scheduled = new Date(scheduledAt);
           if (!isNaN(scheduled.getTime()) && Date.now() < scheduled.getTime()) {
             const dateStr = scheduled.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
             const timeStr = scheduled.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            toast.info(`The exam will start on ${dateStr} at ${timeStr}.`, { autoClose: false });
+            const title = found.paper?.title ? `"${found.paper.title}"` : 'Your exam';
+            toast.info(`${dateStr} at ${timeStr} — ${title} will start.`, { autoClose: false });
+            return;
+          }
+
+          // Check if exam has already finished (scheduled time + duration)
+          const examEndTime = new Date(scheduled.getTime() + (duration * 60 * 1000));
+          if (!isNaN(examEndTime.getTime()) && Date.now() > examEndTime.getTime()) {
+            const errMsg = 'This exam has already ended. You cannot access it anymore.';
+            setErrorMessage(errMsg);
+            toast.error(errMsg, { autoClose: false });
             return;
           }
         }
@@ -370,7 +464,19 @@ export function StudentEnroll() {
 
   // Show exam interface if exam has started
   if (examStarted) {
-    return <ExamInterface examId={examId} paperInstance={paperInstance} onExit={() => setExamStarted(false)} onMetrics={handleMetrics} onCameraStream={handleCameraStream} />;
+    const handleExamExit = (exitData) => {
+      // Show toast based on exit reason
+      if (exitData?.reason === 'time_up') {
+        toast.error('Your exam time has expired. Your answers have been submitted.', { autoClose: 5000 });
+      } else if (exitData?.reason === 'terminated') {
+        toast.error('Your exam session has been terminated by the administrator.', { autoClose: 5000 });
+      }
+      setExamStarted(false);
+      setErrorMessage(null);
+      setPaperInstance(null);
+    };
+
+    return <ExamInterface examId={examId} paperInstance={paperInstance} onExit={handleExamExit} onMetrics={handleMetrics} onCameraStream={handleCameraStream} />;
   }
 
   return (
@@ -399,6 +505,34 @@ export function StudentEnroll() {
   videoStream={cameraStreamObj}
   snapshot={snapshotUrl}
       />
+
+      {/* Show error message if exam is not yet scheduled */}
+      {errorMessage && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl shadow-md p-6 border-2 border-amber-400 mb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <FiAlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-amber-900 mb-2">Exam Not Yet Available</h3>
+                <p className="text-amber-800 text-sm">{errorMessage}</p>
+              </div>
+            </div>
+            {timeUntilStart && (
+              <div className="flex flex-col items-center justify-center bg-white rounded-lg px-4 py-3 min-w-[120px] border border-amber-200">
+                <p className="text-xs text-amber-600 font-medium mb-1">Starts in</p>
+                <div className="text-center">
+                  {timeUntilStart.days > 0 && (
+                    <p className="text-2xl font-bold text-amber-900">{timeUntilStart.days}d</p>
+                  )}
+                  <p className="text-3xl font-bold text-amber-900 tabular-nums">
+                    {String(timeUntilStart.hours).padStart(2, '0')}:{String(timeUntilStart.minutes).padStart(2, '0')}:{String(timeUntilStart.seconds).padStart(2, '0')}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
         {/* If exam link provided, show student login; otherwise show exam ID input */}
         {showLogin ? (
@@ -452,7 +586,7 @@ export function StudentEnroll() {
                 type="primary"
                 htmlType="submit"
                 className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]"
-                disabled={loadingPaper}
+                disabled={loadingPaper || !!errorMessage}
               >
                 {loadingPaper ? 'Loading exam…' : 'Start Exam'}
               </Button>

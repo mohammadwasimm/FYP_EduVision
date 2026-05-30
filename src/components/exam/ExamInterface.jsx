@@ -4,6 +4,7 @@ import { FiAlertCircle, FiCamera, FiVideo, FiGrid } from "react-icons/fi";
 import { Radio } from "antd";
 import { examsApi } from "../../store/apiClients/examsClient";
 import { useSocket } from "../../utils/useSocket";
+import { toast } from "../../utils/react-toastify-shim";
 
 
 export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstance, onExit, onMetrics, onCameraStream, onSnapshot }) {
@@ -21,6 +22,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   const [isTabActive, setIsTabActive] = useState(true);
   const [isExpired, setIsExpired] = useState(false);
   const videoRef = useRef(null);
+  const timeWarningShownRef = useRef(false); // Track if 5-min warning already shown
 
   // COCO-SSD model ref — loaded lazily after camera starts, stays in memory
   const cocoModelRef = useRef(null);
@@ -327,17 +329,15 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
       // Clear saved session so student can't re-enter
       try { localStorage.removeItem('edu:lastPaperInstance'); } catch (_) {}
 
-      // Show full-screen termination notice then redirect
-      import('../../utils/react-toastify-shim').then(({ toast }) => {
-        toast.error(payload.message || 'Your session has been terminated by the administrator.', {
-          autoClose: false,
-          closeOnClick: false,
-        });
-      }).catch(() => {});
+      // Show termination notice
+      toast.error(payload.message || '🚨 Your session has been terminated by the administrator.', {
+        autoClose: false,
+        closeOnClick: false,
+      });
 
-      // Brief delay so toast is visible, then exit
+      // Brief delay so toast is visible, then exit with reason
       setTimeout(() => {
-        if (typeof onExit === 'function') onExit();
+        if (typeof onExit === 'function') onExit({ reason: 'terminated' });
       }, 2500);
     },
   });
@@ -454,25 +454,53 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
     return () => { mounted = false; };
   }, [examId]);
 
-  // Timer countdown
+  // Timer countdown - runs continuously
   useEffect(() => {
-    if (timeRemaining <= 0) {
-      // Time is up - auto-submit and close the exam
-      if (!isExpired) {
-        setIsExpired(true);
-        if (typeof onExit === 'function') {
-          onExit({ reason: 'time_up', answers });
-        }
-      }
-      return;
-    }
+    if (isExpired) return;
 
     const timer = setInterval(() => {
-      setTimeRemaining((prev) => prev - 1);
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timer);
+  }, [isExpired]);
+
+  // Handle timer expiration and warnings (separate effect)
+  useEffect(() => {
+    if (timeRemaining <= 0 && !isExpired) {
+      setIsExpired(true);
+      toast.error('⏰ Time is up! Your exam session has expired. Submitting your answers...', { autoClose: 5000 });
+
+      // Mark session as expired on backend to prevent re-access
+      const myId = instanceIdRef.current || (paperInstance?.instance?.id) || null;
+      if (myId) {
+        try {
+          examsApi.expireInstance(myId).catch(err => {
+            console.warn('Failed to mark session as expired on backend:', err?.message);
+          });
+        } catch (err) {
+          console.warn('Failed to mark session as expired:', err?.message);
+        }
+      }
+
+      if (typeof onExit === 'function') {
+        onExit({ reason: 'time_up', answers });
+      }
+    }
   }, [timeRemaining, isExpired, answers, onExit]);
+
+  // 5-minute warning
+  useEffect(() => {
+    if (timeRemaining === 300 && !timeWarningShownRef.current && !isExpired) {
+      timeWarningShownRef.current = true;
+      toast.warning('⚠️ 5 minutes remaining! Please finish and submit your exam.', { autoClose: 5000 });
+    }
+  }, [timeRemaining, isExpired]);
 
   const answeredCount = useMemo(
     () => Object.keys(answers).filter((key) => answers[key] !== undefined && answers[key] !== null).length,
@@ -480,8 +508,10 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   );
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    // Ensure we don't show negative time
+    const safeSeconds = Math.max(0, seconds);
+    const mins = Math.floor(safeSeconds / 60);
+    const secs = safeSeconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
@@ -704,9 +734,12 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
               <button
                 key={q.id}
                 onClick={() => handleQuestionNavigation(index)}
+                disabled={isExpired}
                 className={[
                   "w-10 h-10 rounded-lg font-medium text-sm transition",
-                  isCurrent
+                  isExpired
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                    : isCurrent
                     ? "bg-[var(--color-primary)] text-[var(--color-white)] shadow-sm"
                     : isAnswered
                     ? "bg-green-100 text-green-700 border border-green-300"
@@ -740,6 +773,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
                 <Radio.Group
                   value={selectedAnswer}
                   onChange={(e) => handleAnswerChange(e.target.value)}
+                  disabled={isExpired}
                   className="w-full flex flex-col gap-3"
                 >
                   {currentQuestion.options.map((option) => (
@@ -772,10 +806,10 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <button
               onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
+              disabled={currentQuestionIndex === 0 || isExpired}
               className={[
                 "min-w-[120px] h-[45px] px-6 text-sm font-medium rounded-lg flex items-center justify-center transition",
-                currentQuestionIndex === 0
+                currentQuestionIndex === 0 || isExpired
                   ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
                   : "bg-white text-[var(--color-primary)] border border-slate-300 hover:bg-slate-50",
               ].join(" ")}
@@ -785,10 +819,10 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
             {currentQuestionIndex < questionsList.length - 1 ? (
             <button
               onClick={handleNext}
-              disabled={typeof answers[currentQuestion.id] === 'undefined'}
+              disabled={typeof answers[currentQuestion.id] === 'undefined' || isExpired}
               className={[
                 "min-w-[120px] h-[45px] px-6 text-sm font-medium rounded-lg flex items-center justify-center transition",
-                currentQuestionIndex === questionsList.length - 1
+                currentQuestionIndex === questionsList.length - 1 || isExpired || typeof answers[currentQuestion.id] === 'undefined'
                   ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
                   : "bg-[var(--color-primary)] text-[var(--color-white)] hover:bg-[var(--color-primary)] border border-[var(--color-primary)]",
               ].join(" ")}
@@ -798,6 +832,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
             ) : (
               <button
                 onClick={async () => {
+                  if (isExpired) return;
                   const q = currentQuestion;
                   const key = q.id || `q-index-${currentQuestionIndex}`;
                   const selected = answers[key];
@@ -815,8 +850,12 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
                   // exit the exam UI
                   if (typeof onExit === 'function') onExit();
                 }}
+                disabled={isExpired}
                 className={[
-                  "min-w-[120px] h-[45px] px-6 text-sm font-medium rounded-lg flex items-center justify-center transition bg-[var(--color-primary)] text-[var(--color-white)] border border-[var(--color-primary)] hover:bg-[var(--color-primary)]",
+                  "min-w-[120px] h-[45px] px-6 text-sm font-medium rounded-lg flex items-center justify-center transition",
+                  isExpired
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                    : "bg-[var(--color-primary)] text-[var(--color-white)] border border-[var(--color-primary)] hover:bg-[var(--color-primary)]",
                 ].join(" ")}
               >
                 Done
