@@ -7,3 +7,5 @@ export const SIGNIN_SUCCESS = 'auth/SIGNIN_SUCCESS';
 export const SIGNIN_FAILURE = 'auth/SIGNIN_FAILURE';
 
 export const SIGNOUT = 'auth/SIGNOUT';
+
+export const UPDATE_USER_PROFILE = 'auth/UPDATE_USER_PROFILE';

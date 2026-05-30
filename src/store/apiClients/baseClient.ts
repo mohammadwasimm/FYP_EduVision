@@ -58,15 +58,23 @@ export const createBaseClient = (
         window.location.href = '/admin-signin';
       }
 
-      // Error formatting - FastAPI returns 'detail' for validation errors
-      // detail can be a string or an array of validation error objects
+      // Error formatting - extract message from various response formats
       let errorMessage = error.message || 'An error occurred';
-      const detail = error.response?.data?.detail;
-      
-      if (detail) {
+      const responseData = error.response?.data || {};
+      const detail = responseData?.detail;
+
+      // Check for error field (Express/Node backend format)
+      if (responseData?.error && typeof responseData.error === 'string') {
+        errorMessage = responseData.error;
+      }
+      // Check for message field
+      else if (responseData?.message && typeof responseData.message === 'string') {
+        errorMessage = responseData.message;
+      }
+      // Check for detail field (FastAPI format)
+      else if (detail) {
         if (Array.isArray(detail)) {
           // FastAPI validation errors array format
-          // Extract first error message or combine all
           const firstError = detail[0];
           if (firstError?.msg) {
             errorMessage = firstError.msg;
@@ -78,8 +86,6 @@ export const createBaseClient = (
         } else if (typeof detail === 'string') {
           errorMessage = detail;
         }
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
       }
       
       const errorData: ApiErrorData = {

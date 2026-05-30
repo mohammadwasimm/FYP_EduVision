@@ -9,6 +9,7 @@ import {
   SIGNIN_SUCCESS,
   SIGNIN_FAILURE,
   SIGNOUT,
+  UPDATE_USER_PROFILE,
 } from './actionTypes';
 
 function persistAdmin(admin: any) {
@@ -45,6 +46,25 @@ export const signin = async (payload: { email: string; password: string }) => {
     dispatch({ type: SIGNIN_FAILURE, payload: err?.message || 'Signin failed' });
     throw err;
   }
+};
+
+export const updateUserProfile = (updates: any) => {
+  // Get current user from localStorage as fallback
+  let currentUser = null;
+  try {
+    const stored = localStorage.getItem('edu:admin');
+    currentUser = stored ? JSON.parse(stored) : null;
+  } catch (_) {}
+
+  if (!currentUser) {
+    // If no stored user, just dispatch without persisting
+    dispatch({ type: UPDATE_USER_PROFILE, payload: updates });
+    return;
+  }
+
+  const updatedUser = { ...currentUser, ...updates };
+  persistAdmin(updatedUser);
+  dispatch({ type: UPDATE_USER_PROFILE, payload: updatedUser });
 };
 
 export const signout = () => {

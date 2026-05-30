@@ -18,13 +18,26 @@ export function AdminSignUp() {
     return emailRegex.test(e);
   };
 
+  const validatePassword = (pwd) => {
+    if (pwd.length < 8) return 'Password must be at least 8 characters';
+    if (!/[a-z]/.test(pwd)) return 'Password must contain lowercase letters';
+    if (!/[A-Z]/.test(pwd)) return 'Password must contain uppercase letters';
+    if (!/[0-9]/.test(pwd)) return 'Password must contain numbers';
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) return 'Password must contain special characters (!@#$%^&*)';
+    return '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!fullName || !email || !password) return toast.error('Please fill required fields');
-    if (fullName.trim().length < 3) return toast.error('Full name must be at least 3 characters');
+
     if (!validateEmail(email)) return toast.error('Please enter a valid email address');
-    if (password.length < 6) return toast.error('Password must be at least 6 characters');
+
+    const passwordError = validatePassword(password);
+    if (passwordError) return toast.error(passwordError);
+
     if (password !== confirm) return toast.error('Passwords do not match');
+
     try {
       const res = await signup({ fullName, email, password });
       toast.success('Admin account created — signing you in');
@@ -45,40 +58,51 @@ export function AdminSignUp() {
           Set up your admin account to get started
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Full Name *"
+            placeholder="Enter your full name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+          <Input
+            label="Email Address *"
+            type="email"
+            placeholder="admin@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
           <div>
             <Input
-              label={<span>Full Name <span className="text-red-500">*</span></span>}
-              placeholder="Enter your full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </div>
-          <div>
-            <Input
-              label={<span>Email Address <span className="text-red-500">*</span></span>}
-              placeholder="admin@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div>
-            <Input
-              label={<span>Password <span className="text-red-500">*</span></span>}
+              label="Password *"
               type="password"
-              placeholder="Create a strong password"
+              showPasswordToggle
+              placeholder="Create a strong password (8+ chars, mixed case, numbers, special chars)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              error={validatePassword(password)}
             />
+            {password && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex-1 bg-slate-200 h-2 rounded overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${!validatePassword(password) ? 'bg-green-500 w-full' : 'bg-red-500 w-1/3'}`}
+                  />
+                </div>
+                <span className={`text-xs font-medium ${!validatePassword(password) ? 'text-green-600' : 'text-red-600'}`}>
+                  {!validatePassword(password) ? 'Strong' : 'Weak'}
+                </span>
+              </div>
+            )}
           </div>
-          <div>
-            <Input
-              label={<span>Confirm Password <span className="text-red-500">*</span></span>}
-              type="password"
-              placeholder="Confirm your password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-            />
-          </div>
+          <Input
+            label="Confirm Password *"
+            type="password"
+            showPasswordToggle
+            placeholder="Confirm your password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            error={confirm && password !== confirm ? 'Passwords do not match' : ''}
+          />
           <Button type="primary" htmlType="submit" className="w-full">
             Sign Up
           </Button>

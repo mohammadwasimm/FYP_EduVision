@@ -6,6 +6,7 @@ import {
   SIGNIN_SUCCESS,
   SIGNIN_FAILURE,
   SIGNOUT,
+  UPDATE_USER_PROFILE,
 } from './actionTypes';
 
 // Restore admin profile across page refreshes
@@ -34,6 +35,8 @@ export default function authReducer(state = initialState, action: any) {
       return { ...state, loading: false, error: action.payload };
     case SIGNOUT:
       return { ...state, user: null, token: null };
+    case UPDATE_USER_PROFILE:
+      return { ...state, user: { ...state.user, ...action.payload } };
     default:
       return state;
   }

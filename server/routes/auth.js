@@ -75,17 +75,44 @@ router.get('/profile', (req, res) => {
 router.post('/signup', (req, res) => {
   try {
     const { fullName, email, password } = req.body || {};
+
+    // Validate required fields
     if (!fullName || !email || !password)
       return res.status(400).json({ error: 'Missing required fields: fullName, email, password' });
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email))
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+
+    // Validate full name
+    const trimmedName = fullName.trim();
+    if (trimmedName.length < 3)
+      return res.status(400).json({ error: 'Full name must be at least 3 characters' });
+    if (!/^[a-zA-Z\s]+$/.test(trimmedName))
+      return res.status(400).json({ error: 'Full name should only contain letters and spaces' });
+
+    // Validate password strength
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    if (!/[a-z]/.test(password))
+      return res.status(400).json({ error: 'Password must contain lowercase letters' });
+    if (!/[A-Z]/.test(password))
+      return res.status(400).json({ error: 'Password must contain uppercase letters' });
+    if (!/[0-9]/.test(password))
+      return res.status(400).json({ error: 'Password must contain numbers' });
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+      return res.status(400).json({ error: 'Password must contain special characters (!@#$%^&*)' });
+
+    // Check if email already exists
     const existing = db.prepare('SELECT id FROM admins WHERE email = ?').get(email);
     if (existing) return res.status(409).json({ error: 'Admin with this email already exists' });
 
     const hashed = hashPassword(password);
     const result = db.prepare('INSERT INTO admins (fullName, email, password, profile_picture) VALUES (?,?,?,?)')
-      .run(fullName, email, JSON.stringify(hashed), null);
+      .run(trimmedName, email, JSON.stringify(hashed), null);
 
-    const admin = { id: result.lastInsertRowid, fullName, email, profilePicture: null };
+    const admin = { id: result.lastInsertRowid, fullName: trimmedName, email, profilePicture: null };
     const token = jwtSign({ id: admin.id, email });
     res.status(201).json({ admin, token });
   } catch (err) {

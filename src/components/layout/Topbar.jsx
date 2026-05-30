@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { FiBell } from "react-icons/fi";
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../utils/useSocket';
 
 export function Topbar({ title = "Dashboard" }) {
+  const navigate = useNavigate();
   const reduxUser = useSelector((state) => state?.auth?.user);
 
   // Fall back to localStorage so name survives page refresh
@@ -19,6 +21,12 @@ export function Topbar({ title = "Dashboard" }) {
   const initials = displayName
     .split(' ').filter(Boolean).slice(0, 2)
     .map((w) => w[0]?.toUpperCase()).join('') || 'AD';
+
+  const profileImage = authUser?.profilePicture || null;
+
+  const handleProfileClick = () => {
+    navigate('/settings?tab=profile');
+  };
 
   // Live notification badge — increments on every new incident via Socket.io
   const [unread, setUnread] = useState(0);
@@ -124,15 +132,27 @@ export function Topbar({ title = "Dashboard" }) {
         )}
 
         {/* Admin avatar + name */}
-        <div className="flex items-center gap-3 pl-1">
-          <div className="h-10 w-10 rounded-full bg-[var(--color-primary)] text-[var(--color-white)] flex items-center justify-center font-semibold text-sm select-none">
-            {initials}
+        <button
+          type="button"
+          onClick={handleProfileClick}
+          className="flex items-center gap-3 pl-1 hover:opacity-80 transition cursor-pointer"
+        >
+          <div className="relative h-10 w-10 rounded-full shrink-0 overflow-hidden bg-[var(--color-primary)] text-[var(--color-white)] flex items-center justify-center font-semibold text-sm select-none">
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              initials
+            )}
           </div>
           <div className="hidden sm:block leading-tight">
             <p className="text-sm font-medium text-[var(--color-text)]">{displayName}</p>
             <p className="text-[11px] text-slate-400">Administrator</p>
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );

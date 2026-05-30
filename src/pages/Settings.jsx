@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardBody } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Checkbox } from "../components/ui/Checkbox";
@@ -10,6 +11,7 @@ import {
 import { SettingsQueries } from '../store/serviceQueries/settingsQueries';
 import { settingsApi } from '../store/apiClients/settingsClient';
 import { authApi } from '../store/apiClients/authClient';
+import { updateUserProfile } from '../pages/auth/stores/actions';
 import { toast } from '../utils/react-toastify-shim';
 
 const TABS = [
@@ -20,7 +22,8 @@ const TABS = [
 ];
 
 export function Settings() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "profile");
   const reduxAdmin = useSelector((state) => state?.auth?.user || null);
   const [admin, setAdmin] = useState(reduxAdmin || {});
   const [profilePicture, setProfilePicture] = useState(admin?.profilePicture || null);
@@ -31,15 +34,24 @@ export function Settings() {
   useEffect(() => {
     if (reduxAdmin?.fullName) {
       setAdmin(reduxAdmin);
+      setProfilePicture(reduxAdmin?.profilePicture || null);
       return;
     }
     authApi.getProfile()
       .then((res) => {
         const profile = res?.data?.data || res?.data || null;
-        if (profile) setAdmin(profile);
+        if (profile) {
+          setAdmin(profile);
+          setProfilePicture(profile?.profilePicture || null);
+        }
       })
       .catch(() => {});
   }, [reduxAdmin]);
+
+  // Sync profile picture when admin object changes
+  useEffect(() => {
+    setProfilePicture(admin?.profilePicture || null);
+  }, [admin?.profilePicture]);
 
   // ── Notification prefs ──────────────────────────────────────────────────
   const [emailAlerts,          setEmailAlerts]          = useState(true);
@@ -135,6 +147,8 @@ export function Settings() {
       if (picUrl) {
         setProfilePicture(picUrl);
         setAdmin((prev) => ({ ...prev, profilePicture: picUrl }));
+        // Update Redux and localStorage so the header shows the new picture
+        updateUserProfile({ profilePicture: picUrl });
         toast.success('Profile picture updated successfully!');
       } else {
         toast.error('Failed to upload profile picture. Please try again.');

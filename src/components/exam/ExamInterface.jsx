@@ -19,6 +19,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   const [requestingCamera, setRequestingCamera] = useState(false);
   const [monitoringMetrics, setMonitoringMetrics] = useState({ headMovement: "Normal", motionScore: 0, mobileDetected: 'No' });
   const [isTabActive, setIsTabActive] = useState(true);
+  const [isExpired, setIsExpired] = useState(false);
   const videoRef = useRef(null);
 
   // COCO-SSD model ref — loaded lazily after camera starts, stays in memory
@@ -442,7 +443,13 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   // Timer countdown
   useEffect(() => {
     if (timeRemaining <= 0) {
-      // Handle time up
+      // Time is up - auto-submit and close the exam
+      if (!isExpired) {
+        setIsExpired(true);
+        if (typeof onExit === 'function') {
+          onExit({ reason: 'time_up', answers });
+        }
+      }
       return;
     }
 
@@ -451,7 +458,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining]);
+  }, [timeRemaining, isExpired, answers, onExit]);
 
   const answeredCount = useMemo(
     () => Object.keys(answers).filter((key) => answers[key] !== undefined && answers[key] !== null).length,
@@ -465,6 +472,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   };
 
   const handleAnswerChange = (value) => {
+    if (isExpired) return; // Prevent answering after time expires
     const key = currentQuestion.id || `q-index-${currentQuestionIndex}`;
     setAnswers((prev) => ({
       ...prev,
@@ -473,16 +481,19 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   };
 
   const handleQuestionNavigation = (index) => {
+    if (isExpired) return; // Prevent navigation after time expires
     setCurrentQuestionIndex(index);
   };
 
   const handlePrevious = () => {
+    if (isExpired) return; // Prevent navigation after time expires
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
 
   const handleNext = () => {
+    if (isExpired) return; // Prevent navigation after time expires
     const saveAndNext = async () => {
       const q = currentQuestion;
       const key = q.id || `q-index-${currentQuestionIndex}`;
@@ -627,7 +638,9 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-xl font-semibold text-[var(--color-text)]">
+            <div className={`text-xl font-semibold ${
+              isExpired ? 'text-red-600' : timeRemaining < 300 ? 'text-amber-600' : 'text-[var(--color-text)]'
+            }`}>
               {formatTime(timeRemaining)}
             </div>
             <div className="flex items-center gap-2">
@@ -638,6 +651,23 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
           </div>
         </div>
       </header>
+
+      {/* Expiration Banner */}
+      {isExpired && (
+        <div className="bg-red-100 border-b border-red-400 px-6 py-4">
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <FiAlertCircle className="text-red-600 w-5 h-5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-red-700">
+                Time's Up! Your exam session has ended.
+              </p>
+              <p className="text-sm text-red-600 mt-1">
+                Your answers have been submitted automatically.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Warning Bar */}
   <div className="bg-slate-100 border-b border-slate-200 px-6 py-3">
