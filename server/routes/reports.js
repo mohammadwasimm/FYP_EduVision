@@ -61,7 +61,7 @@ router.get('/export.csv', (req, res) => {
   sql += ' ORDER BY timestamp DESC';
   const rows = db.prepare(sql).all(...params);
 
-  const header = ['id','studentName','rollNumber','exam','subject','cheatingType','timestamp','date','severity','evidenceFile'];
+  const header = ['id','studentName','rollNumber','exam','subject','cheatingType','timestamp','date','severity','mobileDetected','headMovement','eyeMovement','headPose','evidenceFile'];
   const lines  = [header.join(','), ...rows.map(r => header.map(h => `"${String(r[h]??'').replace(/"/g,'""')}"`).join(','))];
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="incidents.csv"');
@@ -72,11 +72,12 @@ router.get('/export.csv', (req, res) => {
 router.post('/', (req, res) => {
   const raw = req.body || {};
   const id = nextIncidentId();
-  db.prepare(`INSERT INTO incidents (id,studentName,rollNumber,exam,subject,cheatingType,timestamp,date,severity,evidenceFile,instanceId) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+  db.prepare(`INSERT INTO incidents (id,studentName,rollNumber,exam,subject,cheatingType,timestamp,date,severity,evidenceFile,instanceId,mobileDetected,headMovement,eyeMovement,headPose) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(id, raw.studentName||null, raw.rollNumber||null, raw.exam||null, raw.subject||null,
         raw.cheatingType||null, raw.timestamp||new Date().toISOString(),
         raw.date||new Date().toISOString().slice(0,10),
-        raw.severity||'low', raw.evidenceFile||null, raw.instanceId||null);
+        raw.severity||'low', raw.evidenceFile||null, raw.instanceId||null,
+        raw.mobileDetected||'No', raw.headMovement||'Normal', raw.eyeMovement||'Unknown', raw.headPose||'Unknown');
   const inc = db.prepare('SELECT * FROM incidents WHERE id=?').get(id);
   if (global._io) global._io.emit('new_incident', inc);
   res.status(201).json({ data: inc });

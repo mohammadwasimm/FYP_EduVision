@@ -83,6 +83,15 @@ export const examsApi = {
   // Upload a small base64 snapshot for live preview
   uploadSnapshot: (instanceId: string, imageBase64: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/snapshot`, { image: imageBase64 }),
 
+  // Detect mobile phones using YOLO model (async, non-blocking)
+  detectMobile: (instanceId: string, imageBase64: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/detect-mobile`, { image: imageBase64 }),
+
+  // Detect eye movement using dlib (async, non-blocking)
+  detectEyeMovement: (instanceId: string, imageBase64: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/detect-eye-movement`, { image: imageBase64 }),
+
+  // Detect head pose using dlib (async, non-blocking)
+  detectHeadPose: (instanceId: string, imageBase64: string) => examsClient.post(`/api/exams/instances/${encodeURIComponent(instanceId)}/detect-head-pose`, { image: imageBase64 }),
+
   updateExamQuestionsCsv: (examId: string, csvText: string) =>
     examsClient.put(`/api/exams/${examId}/questions/csv`, csvText, {
       headers: { 'Content-Type': 'text/csv' },

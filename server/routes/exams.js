@@ -460,6 +460,292 @@ router.get('/instances/:id/snapshot/file/:filename', (req, res) => {
   res.sendFile(filePath);
 });
 
+// ─── POST /api/exams/instances/:id/detect-mobile ──────────────────────────
+// Detect mobile phones in image using YOLO model
+router.post('/instances/:id/detect-mobile', async (req, res) => {
+  const { id } = req.params;
+  const { image } = req.body || {};
+
+  if (!image) return res.status(400).json({ error: 'Missing image in body' });
+
+  const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(id);
+  if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  try {
+    // Save image temporarily
+    if (!fs.existsSync(SNAP_DIR)) fs.mkdirSync(SNAP_DIR, { recursive: true });
+
+    const m = image.match(/^data:(image\/(png|jpe?g));base64,(.+)$/);
+    const ext = m ? (m[2]==='png'?'png':'jpg') : 'jpg';
+    const b64 = m ? m[3] : image.replace(/^data:.*;base64,/,'');
+    const tempFileName = `temp_${id}_${Date.now()}.${ext}`;
+    const tempFilePath = path.resolve(SNAP_DIR, tempFileName);
+
+    fs.writeFileSync(tempFilePath, Buffer.from(b64, 'base64'));
+
+    // Call Python YOLO mobile detection (non-blocking, don't wait for result)
+    detectMobileYOLO(tempFilePath).then(result => {
+      // Update metrics with YOLO result
+      const currentMetrics = JSON.parse(inst.metrics || '{}');
+      currentMetrics.mobileDetected = result.mobileDetected ? 'Yes' : 'No';
+      currentMetrics.yoloConfidence = result.confidence || 0;
+
+      db.prepare(`UPDATE exam_instances SET metrics=?, lastMetricsAt=datetime('now') WHERE id=?`)
+        .run(JSON.stringify(currentMetrics), id);
+
+      // Clean up temp file
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+
+      // Emit update
+      if (global._io) {
+        global._io.emit('metrics_update', {
+          instanceId: id,
+          studentId: inst.studentId,
+          metrics: currentMetrics,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }).catch(() => {
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+    });
+
+    // Return immediately with current metrics
+    res.json({ data: { instanceId: id, processing: true } });
+  } catch (err) {
+    console.error('Mobile detection error:', err);
+    res.status(500).json({ error: 'Mobile detection failed' });
+  }
+});
+
+// Helper function to detect mobile using YOLO
+async function detectMobileYOLO(imagePath) {
+  return new Promise((resolve) => {
+    const { spawn } = require('child_process');
+
+    try {
+      const python = spawn('python3', [
+        path.resolve(__dirname, '..', 'ai_engine', 'mobile_detection.py'),
+        imagePath
+      ]);
+
+      let output = '';
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      python.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+          try {
+            const result = JSON.parse(output);
+            resolve({ mobileDetected: result.mobile_detected || false, confidence: result.confidence || 0 });
+          } catch (e) {
+            resolve({ mobileDetected: false, confidence: 0 });
+          }
+        } else {
+          resolve({ mobileDetected: false, confidence: 0 });
+        }
+      });
+
+      setTimeout(() => {
+        python.kill();
+        resolve({ mobileDetected: false, confidence: 0 });
+      }, 5000); // 5 second timeout
+    } catch (err) {
+      resolve({ mobileDetected: false, confidence: 0 });
+    }
+  });
+}
+
+// ─── POST /api/exams/instances/:id/detect-eye-movement ────────────────────
+// Detect eye movement (gaze direction) in image
+router.post('/instances/:id/detect-eye-movement', async (req, res) => {
+  const { id } = req.params;
+  const { image } = req.body || {};
+
+  if (!image) return res.status(400).json({ error: 'Missing image in body' });
+
+  const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(id);
+  if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  try {
+    // Save image temporarily
+    if (!fs.existsSync(SNAP_DIR)) fs.mkdirSync(SNAP_DIR, { recursive: true });
+
+    const m = image.match(/^data:(image\/(png|jpe?g));base64,(.+)$/);
+    const ext = m ? (m[2]==='png'?'png':'jpg') : 'jpg';
+    const b64 = m ? m[3] : image.replace(/^data:.*;base64,/,'');
+    const tempFileName = `temp_eye_${id}_${Date.now()}.${ext}`;
+    const tempFilePath = path.resolve(SNAP_DIR, tempFileName);
+
+    fs.writeFileSync(tempFilePath, Buffer.from(b64, 'base64'));
+
+    // Call Python eye movement detection (non-blocking)
+    detectEyeMovement(tempFilePath).then(result => {
+      // Update metrics with eye movement result
+      const currentMetrics = JSON.parse(inst.metrics || '{}');
+      currentMetrics.eyeMovement = result.gazeDirection || 'Unknown';
+
+      db.prepare(`UPDATE exam_instances SET metrics=?, lastMetricsAt=datetime('now') WHERE id=?`)
+        .run(JSON.stringify(currentMetrics), id);
+
+      // Clean up temp file
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+
+      // Emit update
+      if (global._io) {
+        global._io.emit('metrics_update', {
+          instanceId: id,
+          studentId: inst.studentId,
+          metrics: currentMetrics,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }).catch(() => {
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+    });
+
+    // Return immediately with current metrics
+    res.json({ data: { instanceId: id, processing: true } });
+  } catch (err) {
+    console.error('Eye movement detection error:', err);
+    res.status(500).json({ error: 'Eye movement detection failed' });
+  }
+});
+
+// ─── POST /api/exams/instances/:id/detect-head-pose ──────────────────────
+// Detect head pose in image
+router.post('/instances/:id/detect-head-pose', async (req, res) => {
+  const { id } = req.params;
+  const { image } = req.body || {};
+
+  if (!image) return res.status(400).json({ error: 'Missing image in body' });
+
+  const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(id);
+  if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  try {
+    // Save image temporarily
+    if (!fs.existsSync(SNAP_DIR)) fs.mkdirSync(SNAP_DIR, { recursive: true });
+
+    const m = image.match(/^data:(image\/(png|jpe?g));base64,(.+)$/);
+    const ext = m ? (m[2]==='png'?'png':'jpg') : 'jpg';
+    const b64 = m ? m[3] : image.replace(/^data:.*;base64,/,'');
+    const tempFileName = `temp_head_${id}_${Date.now()}.${ext}`;
+    const tempFilePath = path.resolve(SNAP_DIR, tempFileName);
+
+    fs.writeFileSync(tempFilePath, Buffer.from(b64, 'base64'));
+
+    // Call Python head pose detection (non-blocking)
+    detectHeadPose(tempFilePath).then(result => {
+      // Update metrics with head pose result
+      const currentMetrics = JSON.parse(inst.metrics || '{}');
+      currentMetrics.headPose = result.headDirection || 'Unknown';
+
+      db.prepare(`UPDATE exam_instances SET metrics=?, lastMetricsAt=datetime('now') WHERE id=?`)
+        .run(JSON.stringify(currentMetrics), id);
+
+      // Clean up temp file
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+
+      // Emit update
+      if (global._io) {
+        global._io.emit('metrics_update', {
+          instanceId: id,
+          studentId: inst.studentId,
+          metrics: currentMetrics,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }).catch(() => {
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+    });
+
+    // Return immediately with current metrics
+    res.json({ data: { instanceId: id, processing: true } });
+  } catch (err) {
+    console.error('Head pose detection error:', err);
+    res.status(500).json({ error: 'Head pose detection failed' });
+  }
+});
+
+// Helper function to detect eye movement
+async function detectEyeMovement(imagePath) {
+  return new Promise((resolve) => {
+    const { spawn } = require('child_process');
+
+    try {
+      const python = spawn('python3', [
+        path.resolve(__dirname, '..', 'ai_engine', 'eye_movement_detection.py'),
+        imagePath
+      ]);
+
+      let output = '';
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      python.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+          try {
+            const result = JSON.parse(output);
+            resolve({ gazeDirection: result.gaze_direction || 'Unknown' });
+          } catch (e) {
+            resolve({ gazeDirection: 'Unknown' });
+          }
+        } else {
+          resolve({ gazeDirection: 'Unknown' });
+        }
+      });
+
+      setTimeout(() => {
+        python.kill();
+        resolve({ gazeDirection: 'Unknown' });
+      }, 5000); // 5 second timeout
+    } catch (err) {
+      resolve({ gazeDirection: 'Unknown' });
+    }
+  });
+}
+
+// Helper function to detect head pose
+async function detectHeadPose(imagePath) {
+  return new Promise((resolve) => {
+    const { spawn } = require('child_process');
+
+    try {
+      const python = spawn('python3', [
+        path.resolve(__dirname, '..', 'ai_engine', 'head_pose_detection.py'),
+        imagePath
+      ]);
+
+      let output = '';
+      python.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      python.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+          try {
+            const result = JSON.parse(output);
+            resolve({ headDirection: result.head_direction || 'Unknown' });
+          } catch (e) {
+            resolve({ headDirection: 'Unknown' });
+          }
+        } else {
+          resolve({ headDirection: 'Unknown' });
+        }
+      });
+
+      setTimeout(() => {
+        python.kill();
+        resolve({ headDirection: 'Unknown' });
+      }, 5000); // 5 second timeout
+    } catch (err) {
+      resolve({ headDirection: 'Unknown' });
+    }
+  });
+}
+
 // ─── GET /api/exams/:id/monitoring ────────────────────────────────────────
 router.get('/:id/monitoring', (req, res) => {
   const { id } = req.params;

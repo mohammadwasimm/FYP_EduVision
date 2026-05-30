@@ -227,6 +227,56 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
               <p className="text-sm font-semibold text-[var(--color-text)]">{incident.subject || '—'}</p>
             </CardBody>
           </Card>
+          <Card className="border-0 bg-slate-50 rounded-xl">
+            <CardBody className="py-4">
+              <p className="text-xs text-slate-500 mb-1">Mobile Detected</p>
+              <p className={`text-sm font-semibold ${
+                incident.mobileDetected === 'Yes'
+                  ? 'text-red-600'
+                  : 'text-green-600'
+              }`}>
+                {incident.mobileDetected || '—'}
+              </p>
+            </CardBody>
+          </Card>
+          <Card className="border-0 bg-slate-50 rounded-xl">
+            <CardBody className="py-4">
+              <p className="text-xs text-slate-500 mb-1">Head Movement</p>
+              <p className={`text-sm font-semibold ${
+                incident.headMovement === 'Critical'
+                  ? 'text-red-600'
+                  : incident.headMovement === 'Warning'
+                  ? 'text-amber-600'
+                  : 'text-green-600'
+              }`}>
+                {incident.headMovement || '—'}
+              </p>
+            </CardBody>
+          </Card>
+          <Card className="border-0 bg-slate-50 rounded-xl">
+            <CardBody className="py-4">
+              <p className="text-xs text-slate-500 mb-1">Eye Movement</p>
+              <p className={`text-sm font-semibold ${
+                incident.eyeMovement && incident.eyeMovement !== 'Looking Center'
+                  ? 'text-amber-600'
+                  : 'text-green-600'
+              }`}>
+                {incident.eyeMovement || '—'}
+              </p>
+            </CardBody>
+          </Card>
+          <Card className="border-0 bg-slate-50 rounded-xl">
+            <CardBody className="py-4">
+              <p className="text-xs text-slate-500 mb-1">Head Pose</p>
+              <p className={`text-sm font-semibold ${
+                incident.headPose && incident.headPose !== 'Looking at Screen'
+                  ? 'text-amber-600'
+                  : 'text-green-600'
+              }`}>
+                {incident.headPose || '—'}
+              </p>
+            </CardBody>
+          </Card>
         </div>
 
         {/* ── Actions ──────────────────────────────────────────────── */}

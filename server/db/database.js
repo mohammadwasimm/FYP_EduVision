@@ -116,6 +116,20 @@ if (!adminCols.includes('profile_picture')) {
   db.exec(`ALTER TABLE admins ADD COLUMN profile_picture TEXT DEFAULT NULL`);
 }
 
+// Add mobileDetected and headMovement columns to incidents if they don't exist
+if (!incidentCols.includes('mobileDetected')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN mobileDetected TEXT DEFAULT 'No'`);
+}
+if (!incidentCols.includes('headMovement')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN headMovement TEXT DEFAULT 'Normal'`);
+}
+if (!incidentCols.includes('eyeMovement')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN eyeMovement TEXT DEFAULT 'Unknown'`);
+}
+if (!incidentCols.includes('headPose')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN headPose TEXT DEFAULT 'Unknown'`);
+}
+
 // Add duration column to exam_instances if it doesn't exist
 const instanceCols = db.prepare(`PRAGMA table_info(exam_instances)`).all().map(c => c.name);
 if (!instanceCols.includes('duration')) {

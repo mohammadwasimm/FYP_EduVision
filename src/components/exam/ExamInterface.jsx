@@ -258,6 +258,20 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
             }
           } catch (_) { /* non-fatal */ }
         }
+
+        // 3. Call AI detection APIs every 2 seconds for accurate monitoring
+        if (instId && httpUploadCounter % 1 === 0) {
+          try {
+            const { examsApi } = await import('../../store/apiClients/examsClient');
+            // YOLO mobile detection
+            await examsApi.detectMobile(instId, dataUrl);
+            // Eye movement detection
+            await examsApi.detectEyeMovement(instId, dataUrl);
+            // Head pose detection
+            await examsApi.detectHeadPose(instId, dataUrl);
+            // Results are handled asynchronously on the backend via Socket.io
+          } catch (_) { /* non-fatal, detections are optional */ }
+        }
       } catch (_) { /* ignore frame errors */ }
     };
 
