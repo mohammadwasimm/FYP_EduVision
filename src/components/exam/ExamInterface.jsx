@@ -61,9 +61,11 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         try {
           await import('@tensorflow/tfjs');
           const cocoSsd = await import('@tensorflow-models/coco-ssd');
-          cocoModelRef.current = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+          cocoModelRef.current = await cocoSsd.load();
+          console.log('[ExamInterface] COCO-SSD model loaded successfully');
         } catch (e) {
           console.warn('[ExamInterface] COCO-SSD unavailable:', e.message);
+          cocoModelRef.current = null;
         } finally {
           cocoLoadingRef.current = false;
         }
@@ -153,9 +155,9 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
 
           let headMovement = 'Normal';
           if (motionScore > 0.06) headMovement = 'Critical';
-          else if (motionScore > 0.02) headMovement = 'Warning';
+          else if (motionScore > 0.02 && motionScore <= 0.06) headMovement = 'Warning';
 
-          const m = { headMovement, motionScore };
+          const m = { headMovement, motionScore, mobileDetected: monitoringMetrics.mobileDetected };
           setMonitoringMetrics(m);
           try { if (typeof onMetrics === 'function') onMetrics(m); } catch (e) {}
         }
@@ -215,20 +217,25 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
 
         // ── Phone detection via COCO-SSD (runs in browser, no Python needed) ──
         let mobileDetected = 'No';
-        if (cocoModelRef.current) {
+        if (cocoModelRef.current && video.readyState === 4) {
           try {
             const predictions = await cocoModelRef.current.detect(video);
-            // Detect cell phones with lower threshold for better sensitivity
-            // Also check for 'remote' and 'laptop' as they indicate potential cheating devices
-            const found = predictions.some(
-              p => {
-                const isPhoneOrDevice = ['cell phone', 'remote', 'laptop'].includes(p.class);
-                const hasGoodConfidence = p.score > 0.45; // Lowered threshold from 0.55
-                return isPhoneOrDevice && hasGoodConfidence;
+            if (Array.isArray(predictions) && predictions.length > 0) {
+              const found = predictions.some(
+                p => {
+                  const isPhoneOrDevice = ['cell phone', 'remote', 'laptop'].includes(p.class);
+                  const hasGoodConfidence = p.score > 0.45;
+                  return isPhoneOrDevice && hasGoodConfidence;
+                }
+              );
+              if (found) {
+                mobileDetected = 'Yes';
+                console.warn('[ExamInterface] 📱 Mobile device detected!');
               }
-            );
-            if (found) mobileDetected = 'Yes';
-          } catch (_) { /* GPU context errors — non-fatal */ }
+            }
+          } catch (e) { 
+            console.warn('[ExamInterface] COCO-SSD detection error:', e.message);
+          }
         }
         // Keep local state in sync so the live widget shows correct value
         setMonitoringMetrics(prev =>
