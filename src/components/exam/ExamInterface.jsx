@@ -371,7 +371,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
           : await examsApi.getExam(examId);
 
         const payload = resp?.data?.data || resp?.data || {};
-
+console.log("payload", payload);
         // support responses that wrap exam under `exam` (and include `instance`)
         const examPayload = payload.exam || payload;
 
