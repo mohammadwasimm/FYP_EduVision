@@ -1,3 +1,4 @@
+import base64
 import json
 from pathlib import Path
 from typing import List, Optional
@@ -410,6 +411,129 @@ def list_student_assignments(student_id: str):
     ]
     # Return array directly (frontend expects array)
     return demo
+
+
+# ---------------------------------------------------------------------------
+# Exam Instance Detection Endpoints
+# ---------------------------------------------------------------------------
+
+class DetectionImageRequest(BaseModel):
+    image: str = Field(..., description="Base64-encoded image data")
+
+
+@app.post("/api/exams/instances/{instance_id}/detect-mobile")
+async def detect_mobile(instance_id: str, payload: DetectionImageRequest):
+    """
+    Detect mobile phones in the provided image using YOLO model.
+    Returns mobile detection results with confidence scores.
+    """
+    try:
+        # Decode base64 image
+        image_data = base64.b64decode(payload.image.split(',')[-1])
+        np_arr = np.frombuffer(image_data, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Could not decode image"}
+            )
+
+        # Run mobile detection via AI wrapper
+        from .ai_engine_wrapper import analyze_frame
+        result = analyze_frame(frame)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "instance_id": instance_id,
+                "mobile_detected": result.get("mobile_detected", False),
+                "ai_models_available": result.get("ai_models_available", False),
+                "error": result.get("mobile_detection_error"),
+            }
+        )
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Mobile detection failed: {str(exc)}"}
+        )
+
+
+@app.post("/api/exams/instances/{instance_id}/detect-eye-movement")
+async def detect_eye_movement(instance_id: str, payload: DetectionImageRequest):
+    """
+    Detect eye movement and gaze direction using dlib landmarks.
+    Returns gaze direction (Looking Left/Right/Up/Down/Center).
+    """
+    try:
+        # Decode base64 image
+        image_data = base64.b64decode(payload.image.split(',')[-1])
+        np_arr = np.frombuffer(image_data, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Could not decode image"}
+            )
+
+        # Run eye movement detection via AI wrapper
+        from .ai_engine_wrapper import analyze_frame
+        result = analyze_frame(frame)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "instance_id": instance_id,
+                "gaze_direction": result.get("gaze_direction", "Unknown"),
+                "ai_models_available": result.get("ai_models_available", False),
+                "error": result.get("gaze_direction_error"),
+            }
+        )
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Eye movement detection failed: {str(exc)}"}
+        )
+
+
+@app.post("/api/exams/instances/{instance_id}/detect-head-pose")
+async def detect_head_pose(instance_id: str, payload: DetectionImageRequest):
+    """
+    Detect head pose and direction using dlib face detection.
+    Returns head direction and angles (pitch, yaw, roll).
+    """
+    try:
+        # Decode base64 image
+        image_data = base64.b64decode(payload.image.split(',')[-1])
+        np_arr = np.frombuffer(image_data, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Could not decode image"}
+            )
+
+        # Run head pose detection via AI wrapper
+        from .ai_engine_wrapper import analyze_frame
+        result = analyze_frame(frame)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "instance_id": instance_id,
+                "head_direction": result.get("head_direction", "Unknown"),
+                "head_angles": result.get("head_angles", {}),
+                "ai_models_available": result.get("ai_models_available", False),
+                "error": result.get("head_direction_error"),
+            }
+        )
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Head pose detection failed: {str(exc)}"}
+        )
 
 
 

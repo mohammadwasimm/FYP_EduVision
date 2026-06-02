@@ -14,6 +14,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   const [timeRemaining, setTimeRemaining] = useState(60 * 60); // default 60 min, overwritten once exam loads
   const [examData, setExamData] = useState(null);
   const [loadingExam, setLoadingExam] = useState(false);
+  const [examError, setExamError] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
   const [cameraGranted, setCameraGranted]   = useState(false);
   const [cameraError, setCameraError]       = useState(null);
@@ -23,10 +24,6 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
   const [isExpired, setIsExpired] = useState(false);
   const videoRef = useRef(null);
   const timeWarningShownRef = useRef(false); // Track if 5-min warning already shown
-
-  // COCO-SSD model ref — loaded lazily after camera starts, stays in memory
-  const cocoModelRef = useRef(null);
-  const cocoLoadingRef = useRef(false);
 
   // derive instanceId from prop or from paperInstance passed by StudentEnroll
   let instanceId = instanceIdProp || (paperInstance && paperInstance.instance && paperInstance.instance.id) || null;
@@ -54,20 +51,6 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
       setCameraStream(stream);
       setCameraGranted(true);
       try { if (typeof onCameraStream === 'function') onCameraStream(stream); } catch (_) {}
-
-      // Load COCO-SSD after camera granted
-      if (!cocoModelRef.current && !cocoLoadingRef.current) {
-        cocoLoadingRef.current = true;
-        try {
-          await import('@tensorflow/tfjs');
-          const cocoSsd = await import('@tensorflow-models/coco-ssd');
-          cocoModelRef.current = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
-        } catch (e) {
-          console.warn('[ExamInterface] COCO-SSD unavailable:', e.message);
-        } finally {
-          cocoLoadingRef.current = false;
-        }
-      }
     } catch (err) {
       setCameraGranted(false);
       setCameraError(err.name === 'NotAllowedError'
@@ -213,27 +196,6 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
           } catch (_) {}
         }
 
-        // ── Phone detection via COCO-SSD (runs in browser, no Python needed) ──
-        let mobileDetected = 'No';
-        if (cocoModelRef.current) {
-          try {
-            const predictions = await cocoModelRef.current.detect(video);
-            // Detect cell phones with lower threshold for better sensitivity
-            // Also check for 'remote' and 'laptop' as they indicate potential cheating devices
-            const found = predictions.some(
-              p => {
-                const isPhoneOrDevice = ['cell phone', 'remote', 'laptop'].includes(p.class);
-                const hasGoodConfidence = p.score > 0.45; // Lowered threshold from 0.55
-                return isPhoneOrDevice && hasGoodConfidence;
-              }
-            );
-            if (found) mobileDetected = 'Yes';
-          } catch (_) { /* GPU context errors — non-fatal */ }
-        }
-        // Keep local state in sync so the live widget shows correct value
-        setMonitoringMetrics(prev =>
-          prev.mobileDetected === mobileDetected ? prev : { ...prev, mobileDetected }
-        );
 
         // 1. Emit via Socket.io every 2s → admin sees it instantly
         if (instId) {
@@ -444,6 +406,12 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         setExamData(normalized);
         setTimeRemaining((normalized.timeLimit || 60) * 60);
       } catch (err) {
+        console.log("err", err);
+        if (!mounted) return;
+        const errorMsg = err?.response?.data?.message || err?.message || 'Failed to load exam';
+        const errorCode = err?.response?.data?.error;
+        setExamError({ code: errorCode, message: errorMsg });
+        toast.error(errorMsg, { autoClose: false });
         console.warn('Failed to load exam data', err);
       } finally {
         if (mounted) setLoadingExam(false);
@@ -655,7 +623,32 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         </div>
       )}
 
-      {!loadingExam && examData && questionsList.length === 0 && (
+      {/* Error state */}
+      {examError && !loadingExam && (
+        <div className="flex items-center justify-center min-h-screen bg-slate-100">
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full mx-4 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FiAlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 mb-3">
+              {examError.code === 'not_yet_scheduled' ? 'Exam Not Yet Available' : 'Cannot Start Exam'}
+            </h2>
+            <p className="text-slate-600 text-sm mb-6 leading-relaxed">
+              {examError.message}
+            </p>
+            <button
+              onClick={() => {
+                if (typeof onExit === 'function') onExit({ reason: 'error', error: examError.code });
+              }}
+              className="w-full py-2 px-4 bg-slate-200 text-slate-700 rounded-lg font-medium text-sm hover:bg-slate-300 transition"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!loadingExam && !examError && examData && questionsList.length === 0 && (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center space-y-2">
             <p className="text-slate-700 font-semibold">No questions found for this exam.</p>
@@ -664,8 +657,8 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         </div>
       )}
 
-      {/* Main exam UI — only rendered when data is ready */}
-      {(!loadingExam && examData && questionsList.length > 0) && (<>
+      {/* Main exam UI — only rendered when data is ready and no errors */}
+      {(!loadingExam && !examError && examData && questionsList.length > 0) && (<>
 
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4">
