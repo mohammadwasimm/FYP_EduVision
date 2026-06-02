@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(express.text({ type: ['text/csv', 'text/plain'], limit: '5mb' }));
 
 const SNAP_DIR = path.resolve(__dirname, '..', 'data', 'snapshots');
+const PYTHON_PATH = path.resolve(__dirname, '..', '..', '..', 'venv', 'bin', 'python3');
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -593,8 +594,8 @@ async function detectMobileYOLO(imagePath) {
     const { spawn } = require('child_process');
 
     try {
-      const python = spawn('python3', [
-        path.resolve(__dirname, '..', 'ai_engine', 'mobile_detection.py'),
+      const python = spawn(PYTHON_PATH, [
+        path.resolve(__dirname, '..', '..', 'ai_engine', 'mobile_detection.py'),
         imagePath
       ]);
 
@@ -744,8 +745,8 @@ async function detectEyeMovement(imagePath) {
     const { spawn } = require('child_process');
 
     try {
-      const python = spawn('python3', [
-        path.resolve(__dirname, '..', 'ai_engine', 'eye_movement_detection.py'),
+      const python = spawn(PYTHON_PATH, [
+        path.resolve(__dirname, '..', '..', 'ai_engine', 'eye_movement_detection.py'),
         imagePath
       ]);
 
@@ -783,8 +784,8 @@ async function detectHeadPose(imagePath) {
     const { spawn } = require('child_process');
 
     try {
-      const python = spawn('python3', [
-        path.resolve(__dirname, '..', 'ai_engine', 'head_pose_detection.py'),
+      const python = spawn(PYTHON_PATH, [
+        path.resolve(__dirname, '..', '..', 'ai_engine', 'head_pose_detection.py'),
         imagePath
       ]);
 
