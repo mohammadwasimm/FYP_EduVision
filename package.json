@@ -1,0 +1,13 @@
+{
+  "name": "edu-vision-ai-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "dev": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend/api && npm install"
+  },
+  "description": "EduVision - AI-powered exam proctoring system"
+}
