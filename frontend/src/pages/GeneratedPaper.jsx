@@ -38,13 +38,25 @@ export function GeneratedPaper() {
     [navigate]
   );
 
-  const handleViewPaperCsv = useCallback((examId) => {
+  const handleViewPaperCsv = useCallback(async (examId) => {
     if (!examId) return;
 
-    const csvUrl = `${ENV_CONFIG.API_BASE_URL}/api/exams/${encodeURIComponent(examId)}/questions/csv`;
-    const opened = window.open(csvUrl, "_blank");
-    if (!opened) {
-      toast.error("Popup blocked. Please allow popups for this site.");
+    try {
+      toast.info("Downloading CSV...");
+      const response = await examsApi.getExamQuestionsCsv(examId);
+      const csvText = response.data;
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `exam-${examId}-questions.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      toast.success("CSV downloaded successfully");
+    } catch (error) {
+      console.error('Failed to download CSV:', error);
+      toast.error('Failed to download CSV. Please try again.');
     }
   }, []);
 

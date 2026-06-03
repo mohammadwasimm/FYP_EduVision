@@ -283,7 +283,7 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         || null;
       if (!myId || (payload.instanceId && payload.instanceId !== myId)) return;
 
-      // Stop camera tracks immediately
+      // Stop camera tracks immediately                                   
       try {
         cameraStream?.getTracks().forEach(t => t.stop());
       } catch (_) {}
@@ -302,10 +302,27 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         if (typeof onExit === 'function') onExit({ reason: 'terminated' });
       }, 2500);
     },
+    metrics_update: (payload) => {
+      // Backend sends detection results asynchronously via Socket.io
+      const myId = instanceIdRef.current
+        || (paperInstance?.instance?.id)
+        || null;
+      if (!myId || (payload.instanceId && payload.instanceId !== myId)) return;
+
+      const { metrics } = payload;
+      console.log("payload",payload)
+      if (metrics) {
+        setMonitoringMetrics({
+          headMovement: metrics.headMovement || 'Normal',
+          motionScore: metrics.motionScore || 0,
+          mobileDetected: metrics.mobileDetected || 'No',
+        });
+      }
+    },
   });
   useEffect(() => {
-    if (instanceId) socketEmit('join_exam', instanceId);
-  }, [instanceId, socketEmit]);
+    if (examId) socketEmit('join_exam', examId);
+  }, [examId, socketEmit]);
 
   // ── Periodically push metrics to server (every 4 s) ───────────────────
   // Uses a ref so the interval always has the latest values without restarts.
@@ -469,6 +486,40 @@ console.log("payload", payload);
       toast.warning('⚠️ 5 minutes remaining! Please finish and submit your exam.', { autoClose: 5000 });
     }
   }, [timeRemaining, isExpired]);
+
+  // Check if session still exists (every 30 seconds)
+  // If session is terminated/expired by admin, auto-logout student
+  useEffect(() => {
+    if (isExpired || !instanceId) return;
+
+    const checkSession = async () => {
+      try {
+        const resp = await examsApi.getExam(instanceId);
+        const instance = resp?.data?.data?.instance || resp?.data?.instance;
+
+        // If session no longer exists or is marked as completed/terminated, log out
+        if (!instance) {
+          console.log('[ExamInterface] Session not found - logging out');
+          toast.error('⚠️ Your exam session has been terminated. Logging you out...', { autoClose: 5000 });
+          if (typeof onExit === 'function') {
+            onExit({ reason: 'session_terminated', answers });
+          }
+        }
+      } catch (err) {
+        // 404 or session not found error
+        if (err?.response?.status === 404) {
+          console.log('[ExamInterface] Session not found (404) - logging out');
+          toast.error('⚠️ Your exam session is no longer available. Logging you out...', { autoClose: 5000 });
+          if (typeof onExit === 'function') {
+            onExit({ reason: 'session_not_found', answers });
+          }
+        }
+      }
+    };
+
+    const sessionCheckInterval = setInterval(checkSession, 30000); // Check every 30 seconds
+    return () => clearInterval(sessionCheckInterval);
+  }, [instanceId, isExpired, answers, onExit]);
 
   const answeredCount = useMemo(
     () => Object.keys(answers).filter((key) => answers[key] !== undefined && answers[key] !== null).length,

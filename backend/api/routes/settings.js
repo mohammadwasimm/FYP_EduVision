@@ -79,9 +79,17 @@ router.put('/', (req, res) => {
 router.post('/clear-incidents', (req, res) => {
   const { days } = req.body || {};
   const d = parseInt(days, 10);
-  if (isNaN(d) || d < 1) return res.status(400).json({ error: 'days must be a positive integer' });
-  const info = db.prepare(`DELETE FROM incidents WHERE datetime(timestamp) < datetime('now', ?)`)
-    .run(`-${d} days`);
+  if (isNaN(d)) return res.status(400).json({ error: 'days must be a number' });
+
+  let info;
+  if (d <= 0) {
+    // Clear ALL incidents
+    info = db.prepare(`DELETE FROM incidents`).run();
+  } else {
+    // Clear incidents older than d days
+    info = db.prepare(`DELETE FROM incidents WHERE datetime(timestamp) < datetime('now', ?)`)
+      .run(`-${d} days`);
+  }
   res.json({ data: { deleted: info.changes, days: d } });
 });
 

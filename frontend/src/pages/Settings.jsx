@@ -6,7 +6,7 @@ import { Button } from "../components/ui/Button";
 import { Checkbox } from "../components/ui/Checkbox";
 import {
   FiLock, FiBell, FiSave, FiEye, FiEyeOff,
-  FiUser, FiDatabase, FiTrash2, FiUploadCloud,
+  FiUser, FiUploadCloud,
 } from "react-icons/fi";
 import { SettingsQueries } from '../store/serviceQueries/settingsQueries';
 import { settingsApi } from '../store/apiClients/settingsClient';
@@ -18,7 +18,6 @@ const TABS = [
   { key: "profile",      label: "Profile",       icon: FiUser     },
   { key: "notifications",label: "Notifications", icon: FiBell     },
   { key: "password",     label: "Password",      icon: FiLock     },
-  { key: "data",         label: "Data & Reports",icon: FiDatabase },
 ];
 
 export function Settings() {
@@ -66,11 +65,6 @@ export function Settings() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords,   setShowPasswords]   = useState(false);
 
-  // ── Data & Reports ──────────────────────────────────────────────────────
-  const [autoClearDays, setAutoClearDays] = useState(30);
-  const [exportFormat,  setExportFormat]  = useState('csv');
-  const [clearing,      setClearing]      = useState(false);
-
   // Load settings on mount
   useEffect(() => {
     (async () => {
@@ -85,10 +79,6 @@ export function Settings() {
           const bn = !!s.notifications.browserNotifications;
           setBrowserNotifications(bn);
           localStorage.setItem('settings_browserNotifications', String(bn));
-        }
-        if (s.reports) {
-          if (s.reports.autoClearDays) setAutoClearDays(Number(s.reports.autoClearDays));
-          if (s.reports.exportFormat)  setExportFormat(s.reports.exportFormat);
         }
       } catch (err) {
         console.warn('Failed to load settings', err);
@@ -358,118 +348,10 @@ export function Settings() {
     </Card>
   );
 
-  // ── Tab: Data & Reports ─────────────────────────────────────────────────
-  const renderData = () => (
-    <Card className="border-slate-200 rounded-[12px] w-full">
-      <CardBody className="space-y-6">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--color-text)]">Data & Reports</h2>
-          <p className="text-sm text-slate-500">Manage incident data retention and export preferences.</p>
-        </div>
-
-        {/* Auto-clear */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-[var(--color-text)]">Auto-Clear Incidents</p>
-          <p className="text-xs text-slate-500">Automatically delete incidents older than the selected number of days. Set to 0 to never auto-clear.</p>
-          <div className="flex items-center gap-3">
-            {[0, 7, 30, 60, 90].map(d => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setAutoClearDays(d)}
-                className={[
-                  "px-4 h-[38px] rounded-[9px] text-sm font-medium border transition",
-                  autoClearDays === d
-                    ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
-                    : "bg-white text-[var(--color-text)] border-slate-200 hover:border-slate-300",
-                ].join(' ')}
-              >
-                {d === 0 ? 'Never' : `${d}d`}
-              </button>
-            ))}
-            <input
-              type="number"
-              min={0}
-              value={autoClearDays}
-              onChange={(e) => setAutoClearDays(Math.max(0, parseInt(e.target.value) || 0))}
-              className="w-20 h-[38px] rounded-[9px] border border-slate-200 px-3 text-sm text-center outline-none text-[var(--color-text)]"
-              placeholder="Days"
-            />
-          </div>
-        </div>
-
-        {/* Manual clear */}
-        <div className="rounded-[12px] bg-red-50 border border-red-100 px-4 py-4 space-y-2">
-          <p className="text-sm font-medium text-red-700">Clear Incidents Now</p>
-          <p className="text-xs text-red-500">
-            Permanently delete all incidents older than <strong>{autoClearDays === 0 ? 'all' : `${autoClearDays} days`}</strong>. This cannot be undone.
-          </p>
-          <Button
-            disabled={clearing || autoClearDays === 0}
-            className="flex items-center gap-2 !bg-red-600 !border-red-600 text-white hover:!bg-red-700 disabled:opacity-50"
-            onClick={async () => {
-              if (autoClearDays === 0) return toast.info('Set a number of days before clearing.');
-              if (!window.confirm(`Delete all incidents older than ${autoClearDays} days?`)) return;
-              setClearing(true);
-              try {
-                const res = await settingsApi.clearIncidents(autoClearDays);
-                const deleted = res?.data?.data?.deleted ?? 0;
-                toast.success(`Cleared ${deleted} incident${deleted !== 1 ? 's' : ''}`);
-              } catch (err) {
-                toast.error(err?.message || 'Failed to clear incidents');
-              } finally {
-                setClearing(false);
-              }
-            }}
-          >
-            <FiTrash2 className="w-4 h-4" />
-            <span>{clearing ? 'Clearing…' : 'Clear Now'}</span>
-          </Button>
-        </div>
-
-        {/* Export format */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-[var(--color-text)]">Default Export Format</p>
-          <p className="text-xs text-slate-500">Used when exporting reports from the Reports page.</p>
-          <div className="flex gap-3">
-            {['csv', 'pdf'].map(fmt => (
-              <button
-                key={fmt}
-                type="button"
-                onClick={() => setExportFormat(fmt)}
-                className={[
-                  "px-6 h-[42px] rounded-[9px] text-sm font-medium border transition uppercase tracking-wide",
-                  exportFormat === fmt
-                    ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
-                    : "bg-white text-[var(--color-text)] border-slate-200 hover:border-slate-300",
-                ].join(' ')}
-              >
-                {fmt}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button type="primary" className="px-5 flex items-center gap-2" onClick={async () => {
-          try {
-            await settingsApi.update({ reports: { autoClearDays, exportFormat } });
-            toast.success('Data settings saved');
-          } catch (err) {
-            toast.error(err?.message || 'Failed to save settings');
-          }
-        }}>
-          <FiSave className="w-4 h-4" />
-          <span>Save Settings</span>
-        </Button>
-      </CardBody>
-    </Card>
-  );
-
   const renderContent = () => {
     if (activeTab === 'profile')       return renderProfile();
     if (activeTab === 'notifications') return renderNotifications();
     if (activeTab === 'password')      return renderPassword();
-    if (activeTab === 'data')          return renderData();
     return null;
   };
 

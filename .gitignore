@@ -10,6 +10,8 @@
 
 # production
 /build
+/frontend/build
+/frontend/node_modules
 
 # environment — never commit secrets
 .env
@@ -30,7 +32,7 @@ yarn-error.log*
 *.db-wal
 
 # Snapshot images uploaded at runtime
-server/data/snapshots/
+backend/api/data/snapshots/
 
 # Python
 __pycache__/

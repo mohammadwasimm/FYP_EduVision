@@ -55,9 +55,11 @@ export function StudentEnroll() {
         let byLinkResp;
         try {
           byLinkResp = await examsApi.getExamByLink(examId);
+          console.log("Exam found by link:", byLinkResp);
         } catch (err) {
           // Server returns 403 for terminated or not-yet-scheduled — handle gracefully
           const errData = err;
+          
           console.log("Error occurred while fetching exam by link:", errData);
           if (errData?.error === 'terminated') {
             toast.error('Your session has been terminated by the administrator. You cannot re-enter this exam.', { autoClose: false });

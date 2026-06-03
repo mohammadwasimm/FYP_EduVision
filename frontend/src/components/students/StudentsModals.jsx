@@ -68,10 +68,10 @@ export function StudentsModals({
         email: validation.valid ? undefined : validation.error
       }));
     } else {
-      // Email is optional, so no error when empty
+      // Email is required
       setRealTimeErrors(prev => ({
         ...prev,
-        email: undefined
+        email: 'Email is required'
       }));
     }
   };
@@ -151,7 +151,7 @@ export function StudentsModals({
             onChange={handleClassNameChange}
           />
           <Input
-            label="Email (optional)"
+            label="Email *"
             type="email"
             placeholder="student@example.com"
             value={formValues.email}
