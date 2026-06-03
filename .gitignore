@@ -31,9 +31,6 @@ yarn-error.log*
 *.db-shm
 *.db-wal
 
-# Snapshot images uploaded at runtime
-backend/api/data/snapshots/
-
 # Python
 __pycache__/
 *.py[cod]
