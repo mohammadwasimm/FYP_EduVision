@@ -61,7 +61,7 @@ router.get('/export.csv', (req, res) => {
   sql += ' ORDER BY timestamp DESC';
   const rows = db.prepare(sql).all(...params);
 
-  const header = ['id','studentName','rollNumber','exam','subject','cheatingType','timestamp','date','severity','mobileDetected','headMovement','eyeMovement','headPose','evidenceFile'];
+  const header = ['id','studentName','rollNumber','exam','subject','cheatingType','timestamp','date','severity','mobileDetected','mobileConfidence','headMovement','eyeMovement','headPose','evidenceFile','mobileDetectionSnapshot'];
   const lines  = [header.join(','), ...rows.map(r => header.map(h => `"${String(r[h]??'').replace(/"/g,'""')}"`).join(','))];
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="incidents.csv"');
@@ -221,8 +221,8 @@ router.get('/:id/evidence', (req, res) => {
   }
   candidates.push(
     path.resolve(DATA_DIR, file),
-    path.resolve(__dirname, '..', 'build', file),
-    path.resolve(__dirname, '..', 'public', file),
+    path.resolve(__dirname, '..', '..', '..', 'frontend', 'build', file),
+    path.resolve(__dirname, '..', '..', '..', 'frontend', 'public', file),
   );
 
   for (const p of candidates) {
