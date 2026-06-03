@@ -136,6 +136,17 @@ if (!instanceCols.includes('duration')) {
   db.exec(`ALTER TABLE exam_instances ADD COLUMN duration INTEGER DEFAULT 60`);
 }
 
+// Add detection metrics snapshot columns to incidents
+if (!incidentCols.includes('mobileConfidence')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN mobileConfidence REAL DEFAULT 0`);
+}
+if (!incidentCols.includes('mobileDetectionSnapshot')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN mobileDetectionSnapshot TEXT DEFAULT NULL`);
+}
+if (!incidentCols.includes('detectionMetrics')) {
+  db.exec(`ALTER TABLE incidents ADD COLUMN detectionMetrics TEXT DEFAULT '{}'`);
+}
+
 // Seed default settings if missing
 const existing = db.prepare('SELECT id FROM settings WHERE id = 1').get();
 if (!existing) {

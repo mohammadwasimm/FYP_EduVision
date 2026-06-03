@@ -1,48 +1,81 @@
-import cv2
-import torch
 import json
 import sys
-from ultralytics import YOLO
+import os
+import logging
+import io
+from contextlib import redirect_stdout, redirect_stderr
 
-# Load trained YOLO model
-try:
-    model = YOLO("./model/best_yolov8.pt")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model.to(device)
-except Exception as e:
-    print(json.dumps({"mobile_detected": False, "confidence": 0, "error": str(e)}))
-    sys.exit(0)
+# Suppress all logging
+logging.basicConfig(level=logging.CRITICAL)
+logging.getLogger('roboflow').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+
+# Redirect stdout/stderr during Roboflow import to suppress print statements
+devnull = io.StringIO()
+with redirect_stdout(devnull), redirect_stderr(devnull):
+    from roboflow import Roboflow
 
 def process_mobile_detection(image_path):
     """
-    Detect mobile phones in an image using YOLO model.
-    Returns JSON with detection results.
+    Detect mobile phones using Roboflow Python SDK.
+    Returns JSON with detection results and annotated image.
     """
     try:
-        frame = cv2.imread(image_path)
-        if frame is None:
-            return {"mobile_detected": False, "confidence": 0, "error": "Could not read image"}
+        if not os.path.exists(image_path):
+            return {"mobile_detected": False, "confidence": 0, "error": f"Image not found: {image_path}"}
 
-        # Convert to RGB for YOLO
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        api_key = os.getenv("ROBOFLOW_API_KEY", "")
+        if not api_key:
+            return {"mobile_detected": False, "confidence": 0, "error": "ROBOFLOW_API_KEY not set"}
 
-        results = model(rgb_frame, verbose=False, conf=0.5)
+        # Suppress Roboflow print statements during initialization and prediction
+        devnull = io.StringIO()
+        with redirect_stdout(devnull), redirect_stderr(devnull):
+            # Initialize Roboflow with API key
+            rf = Roboflow(api_key=api_key)
+            project = rf.workspace("d1156414").project("cellphone-0aodn")
+            model = project.version(1).model
+
+            # Run inference on the image
+            prediction = model.predict(image_path, confidence=40, overlap=30)
+            prediction_json = prediction.json()
+
+        predictions = prediction_json.get("predictions", [])
+
         mobile_detected = False
         max_confidence = 0.0
+        detections_found = []
 
-        for result in results:
-            for box in result.boxes:
-                conf = float(box.conf[0].item())
-                cls = int(box.cls[0].item())
+        for pred in predictions:
+            class_name = pred.get("class", "unknown")
+            confidence = float(pred.get("confidence", 0)) / 100.0  # Roboflow returns 0-100
+            detections_found.append(f"{class_name}:{confidence:.2f}")
 
-                # Mobile class index is 0, confidence threshold 0.5
-                if cls == 0:  # This is a mobile/phone class
-                    mobile_detected = True
-                    max_confidence = max(max_confidence, conf)
+            # Any detection counts as phone detected (Roboflow model only detects phones)
+            if confidence > 0:
+                mobile_detected = True
+                max_confidence = max(max_confidence, confidence)
+
+        # Get the annotated image with bounding boxes
+        annotated_image_path = None
+        try:
+            if hasattr(prediction, 'save'):
+                # Save visualization to a temp location
+                output_dir = os.path.dirname(image_path)
+                annotated_filename = f"annotated_{os.path.basename(image_path)}"
+                annotated_path = os.path.join(output_dir, annotated_filename)
+                prediction.save(annotated_path)
+                if os.path.exists(annotated_path):
+                    annotated_image_path = annotated_path
+        except Exception as viz_err:
+            # Visualization is optional, don't fail on it
+            pass
 
         return {
             "mobile_detected": mobile_detected,
             "confidence": float(max_confidence),
+            "detections": detections_found,
+            "annotated_image_path": annotated_image_path,
             "error": None
         }
     except Exception as e:
@@ -53,9 +86,10 @@ def process_mobile_detection(image_path):
         }
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        image_path = sys.argv[1]
-        result = process_mobile_detection(image_path)
-        print(json.dumps(result))
-    else:
+    if len(sys.argv) < 2:
         print(json.dumps({"mobile_detected": False, "confidence": 0, "error": "No image path provided"}))
+        sys.exit(0)
+
+    image_path = sys.argv[1]
+    result = process_mobile_detection(image_path)
+    print(json.dumps(result))

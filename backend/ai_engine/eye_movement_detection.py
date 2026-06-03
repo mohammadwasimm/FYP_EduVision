@@ -6,7 +6,9 @@ import sys
 
 # Load face detector & landmarks 
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("model/shape_predictor_68_face_landmarks.dat")
+import os
+predictor_path = os.path.join(os.path.dirname(__file__), "model", "shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor(predictor_path)
 
 def detect_pupil(eye_region):
     """Detect pupil position in eye region"""
