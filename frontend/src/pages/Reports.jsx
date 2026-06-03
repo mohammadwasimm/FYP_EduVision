@@ -1,12 +1,15 @@
 import { useMemo, useState, useEffect } from "react";
-import { DatePicker } from "antd";
+import { DatePicker, Modal } from "antd";
 import { toast } from '../utils/react-toastify-shim';
 import { Search } from "../components/ui/Search";
 import { Dropdown } from "../components/ui/Dropdown";
 import { Button } from "../components/ui/Button";
 import { Card, CardBody } from "../components/ui/Card";
 import { DataTable } from "../components/ui/DataTable";
-import { FiDownload, FiEye, FiAlertTriangle, FiBarChart2, FiActivity } from "react-icons/fi";
+import { Checkbox } from "../components/ui/Checkbox";
+import { FiDownload, FiEye, FiAlertTriangle, FiBarChart2, FiActivity, FiWifi, FiEyeOff, FiTrash2 } from "react-icons/fi";
+import { MdPhoneIphone } from "react-icons/md";
+import { RiErrorWarningLine } from "react-icons/ri";
 import { IncidentEvidenceModal } from "../components/reports/IncidentEvidenceModal";
 import { useSelector } from 'react-redux';
 import { fetchReports, fetchReportsStats } from './reports/stores/actions';
@@ -17,6 +20,32 @@ import { examsApi } from '../store/apiClients/examsClient';
 // Seed options shown before API data loads
 const EXAM_OPTIONS_DEFAULT    = [{ label: "All Exams",    value: "all" }];
 const SUBJECT_OPTIONS_DEFAULT = [{ label: "All Subjects", value: "all" }];
+
+// Parse cheatingType to extract detection metrics
+function parseDetectionMetrics(cheatingType) {
+  if (!cheatingType) return {};
+
+  const metrics = {};
+  const parts = cheatingType.split('|').map(p => p.trim());
+
+  parts.forEach(part => {
+    if (part.includes('Mobile')) metrics.mobileDetected = 'Yes';
+    if (part.includes('Head:')) {
+      const match = part.match(/Head:\s*(.+)/);
+      if (match) metrics.headMovement = match[1].trim();
+    }
+    if (part.includes('Eye:')) {
+      const match = part.match(/Eye:\s*(.+)/);
+      if (match) metrics.eyeMovement = match[1].trim();
+    }
+    if (part.includes('Pose:')) {
+      const match = part.match(/Pose:\s*(.+)/);
+      if (match) metrics.headPose = match[1].trim();
+    }
+  });
+
+  return metrics;
+}
 
 export function getSeverityTone(severity) {
   switch (severity) {
@@ -51,6 +80,9 @@ export function Reports() {
   const [dateFilter, setDateFilter] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
+  const [selectedReports, setSelectedReports] = useState(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const reportsState = useSelector((s) => s.reports);
   const incidents = reportsState?.list?.data || [];
@@ -163,7 +195,81 @@ export function Reports() {
     });
   }, [incidents, search, examFilter, subjectFilter, dateFilter]);
 
+  const toggleReportSelection = (incidentId) => {
+    const updated = new Set(selectedReports);
+    if (updated.has(incidentId)) {
+      updated.delete(incidentId);
+    } else {
+      updated.add(incidentId);
+    }
+    setSelectedReports(updated);
+  };
+
+  const handleDeleteClick = () => {
+    if (selectedReports.size === 0) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      let deleted = 0;
+      for (const id of selectedReports) {
+        try {
+          await ReportsQueries.deleteReportAndInvalidate(id);
+          deleted++;
+        } catch (err) {
+          console.error(`Failed to delete report ${id}:`, err);
+        }
+      }
+      toast.success(`Deleted ${deleted} report${deleted !== 1 ? 's' : ''}`);
+      setSelectedReports(new Set());
+      setShowDeleteConfirm(false);
+      // Reload reports
+      const params = {};
+      if (search?.trim()) params.search = search.trim();
+      if (examFilter && examFilter !== 'all') params.exam = examFilter;
+      if (subjectFilter && subjectFilter !== 'all') params.subject = subjectFilter;
+      if (dateFilter) params.date = dateFilter.format && dateFilter.format('YYYY-MM-DD');
+      fetchReports(params).catch(() => {});
+    } catch (err) {
+      toast.error(err?.message || 'Failed to delete reports');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const reportsToDelete = filteredIncidents.filter(inc => selectedReports.has(inc.id));
+  const reportNames = reportsToDelete.map(inc => inc.studentName).join(', ');
+
+  const handleSelectAll = () => {
+    if (selectedReports.size === filteredIncidents.length && filteredIncidents.length > 0) {
+      // Deselect all
+      setSelectedReports(new Set());
+    } else {
+      // Select all filtered incidents
+      setSelectedReports(new Set(filteredIncidents.map(inc => inc.id)));
+    }
+  };
+
   const columns = [
+    {
+      title: (
+        <Checkbox
+          checked={selectedReports.size > 0 && selectedReports.size === filteredIncidents.length && filteredIncidents.length > 0}
+          indeterminate={selectedReports.size > 0 && selectedReports.size < filteredIncidents.length}
+          onChange={handleSelectAll}
+        />
+      ),
+      key: "checkbox",
+      width: 40,
+      render: (_text, record) => (
+        <Checkbox
+          checked={selectedReports.has(record.id)}
+          onChange={() => toggleReportSelection(record.id)}
+        />
+      ),
+    },
     {
       title: "STUDENT",
       dataIndex: "studentName",
@@ -191,6 +297,55 @@ export function Reports() {
           </p>
         </div>
       ),
+    },
+    {
+      title: "DETECTION METRICS",
+      key: "metrics",
+      render: (_text, record) => {
+        const parsedMetrics = parseDetectionMetrics(record.cheatingType);
+        const displayMetrics = {
+          mobileDetected: parsedMetrics.mobileDetected || record.mobileDetected || 'No',
+          headMovement: parsedMetrics.headMovement || record.headMovement || 'Normal',
+          eyeMovement: parsedMetrics.eyeMovement || record.eyeMovement || 'Unknown',
+          headPose: parsedMetrics.headPose || record.headPose || 'Unknown',
+        };
+
+        return (
+          <div className="flex flex-col gap-1.5">
+            {/* Mobile Detected */}
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <MdPhoneIphone className="w-3 h-3" />
+              <span className={displayMetrics.mobileDetected === 'Yes' ? 'text-red-600 font-medium' : 'text-green-600'}>
+                Mobile: {displayMetrics.mobileDetected || '—'}
+                {displayMetrics.mobileDetected === 'Yes' && record.mobileConfidence > 0 && (
+                  <span className="text-slate-600 ml-1">
+                    ({(record.mobileConfidence * 100).toFixed(0)}%)
+                  </span>
+                )}
+              </span>
+            </div>
+            {/* Head Movement */}
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <FiWifi className="w-3 h-3" />
+              <span className={
+                displayMetrics.headMovement === 'Critical' ? 'text-red-600 font-medium' :
+                displayMetrics.headMovement === 'Warning' ? 'text-amber-600 font-medium' : 'text-green-600'
+              }>
+                Head: {displayMetrics.headMovement || '—'}
+              </span>
+            </div>
+            {/* Eye Movement */}
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <FiEyeOff className="w-3 h-3" />
+              <span className={
+                displayMetrics.eyeMovement && displayMetrics.eyeMovement !== 'Looking Center' ? 'text-amber-600 font-medium' : 'text-green-600'
+              }>
+                Eye: {displayMetrics.eyeMovement || '—'}
+              </span>
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: "CHEATING TYPE",
@@ -271,17 +426,25 @@ export function Reports() {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <div className="flex items-center gap-2">
+        <div className="flex justify-end gap-2">
+          {selectedReports.size > 0 && (
             <Button
-              type="primary"
-              className="flex items-center gap-2 px-4"
-              onClick={handleExportCsv}
+              className="flex items-center gap-2 px-4 !bg-red-600 !border-red-600 text-white hover:!bg-red-700 disabled:opacity-50"
+              disabled={deleting}
+              onClick={handleDeleteClick}
             >
-              <FiDownload className="w-4 h-4" />
-              <span className="text-sm">Export CSV</span>
+              <FiTrash2 className="w-4 h-4" />
+              <span className="text-sm">Delete ({selectedReports.size})</span>
             </Button>
-          </div>
+          )}
+          <Button
+            type="primary"
+            className="flex items-center gap-2 px-4"
+            onClick={handleExportCsv}
+          >
+            <FiDownload className="w-4 h-4" />
+            <span className="text-sm">Export CSV</span>
+          </Button>
         </div>
       </div>
 
@@ -351,6 +514,52 @@ export function Reports() {
         open={isEvidenceOpen}
         onClose={() => setIsEvidenceOpen(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <Modal
+          open={true}
+          onCancel={() => setShowDeleteConfirm(false)}
+          width={420}
+          centered
+          footer={null}
+          closeIcon={null}
+        >
+          <div className="space-y-6 py-4">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <RiErrorWarningLine className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <p className="text-base font-semibold text-slate-800 leading-relaxed">
+                  Are you sure to delete this report?
+                </p>
+                <p className="text-sm text-slate-600 mt-2 font-medium">
+                  {reportNames}
+                </p>
+                <p className="text-xs text-slate-500 mt-2">This action cannot be undone.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-3">
+              <Button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="!border-slate-300 !text-slate-700 !bg-white hover:!bg-slate-50"
+              >
+                No
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="!bg-red-600 !text-white !border-red-600 hover:!bg-red-700"
+              >
+                {deleting ? "Deleting..." : "Yes"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
