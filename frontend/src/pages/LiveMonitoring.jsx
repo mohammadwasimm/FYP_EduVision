@@ -49,6 +49,10 @@ export function LiveMonitoring() {
   // ── Socket.io — real-time updates ────────────────────────────────────────
   const { emit } = useSocket({
     // Student's webcam frame arrives every 2s
+    session_started: () => {
+    loadSessions();
+  },
+
     student_frame: (payload) => {
       const { instanceId, imageData } = payload;
       if (!instanceId || !imageData) return;
@@ -60,6 +64,7 @@ export function LiveMonitoring() {
       const known = sessionsRef.current.find(s => s.instanceId === instanceId);
       if (!known) loadSessions();
     },
+    
 
     // Server-emitted AI / motion metric update
     metrics_update: (payload) => {
@@ -112,6 +117,17 @@ export function LiveMonitoring() {
 
   useEffect(() => { emit('join_monitoring'); }, [emit]);
 
+  // Check if exam time has expired
+  // const isExamExpired = (session) => {
+  //   if (session.completedAt) return true; // Already marked as completed
+  //   if (session.startedAt && session.duration) {
+  //     const startTime = new Date(session.startedAt);
+  //     const endTime = new Date(startTime.getTime() + session.duration * 1000); // duration in seconds
+  //     return new Date() > endTime;
+  //   }
+  //   return false;
+  // };
+
   // Update modal data live when socket updates arrive
   useEffect(() => {
     if (selectedStudent && isModalOpen) {
@@ -122,20 +138,26 @@ export function LiveMonitoring() {
   }, [sessions]);
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const filteredSessions = useMemo(() => {
-    let result = sessions;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter(s =>
+const filteredSessions = useMemo(() => {
+  let result = sessions;
+
+  if (search.trim()) {
+    const q = search.trim().toLowerCase();
+
+    result = result.filter(
+      s =>
         s.name.toLowerCase().includes(q) ||
         s.rollNumber.toLowerCase().includes(q) ||
         s.examTitle?.toLowerCase().includes(q)
-      );
-    }
-    if (activeFilter !== "all") result = result.filter(s => s.status === activeFilter);
-    return result;
-  }, [sessions, search, activeFilter]);
+    );
+  }
 
+  if (activeFilter !== "all") {
+    result = result.filter(s => s.status === activeFilter);
+  }
+
+  return result;
+}, [sessions, search, activeFilter]);
   const stats = useMemo(() => ({
     totalLive: sessions.length,
     normal:   sessions.filter(s => s.status === "normal").length,
@@ -225,12 +247,14 @@ export function LiveMonitoring() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredSessions.map(student => (
-            <MonitoringCard
-              key={student.instanceId}
-              student={student}
-              liveFrame={liveFrames[student.instanceId] || null}
-              onClick={() => handleCardClick(student)}
-            />
+          <MonitoringCard
+  key={student.instanceId}
+  student={student}
+  liveFrame={liveFrames[student.instanceId] || null}
+  isExamExpired={false}
+  onClick={() => handleCardClick(student)}
+/>
+
           ))}
         </div>
       )}

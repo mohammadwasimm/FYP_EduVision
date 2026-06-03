@@ -14,6 +14,7 @@ export const monitoringApi = {
     papers.forEach((paper: any) => {
       (paper.instances || []).forEach((inst: any) => {
         if (inst.status !== 'active') return;
+        console.log(inst);
         const metrics = typeof inst.metrics === 'string' ? JSON.parse(inst.metrics || '{}') : (inst.metrics || {});
         let status: 'normal' | 'warning' | 'critical' = 'normal';
         if (
@@ -24,6 +25,10 @@ export const monitoringApi = {
           (typeof metrics.motionScore === 'number' && metrics.motionScore > 0.04) ||
           String(metrics.headMovement || '').toLowerCase().includes('warning')
         ) status = 'warning';
+
+        // Get duration in minutes and convert to seconds
+        const durationMinutes = inst.duration || paper.timeLimitMinutes || paper.timeLimit || 0;
+        const durationSeconds = typeof durationMinutes === 'number' ? durationMinutes * 60 : 0;
 
         sessions.push({
           id: inst.id,
@@ -37,6 +42,9 @@ export const monitoringApi = {
           metrics,
           snapshot: inst.snapshot || null,
           lastMetricsAt: inst.lastMetricsAt || null,
+          startedAt: inst.startedAt || null,
+          duration: durationSeconds, // Always in seconds for consistency
+          completedAt: inst.completedAt || null,
         });
       });
     });

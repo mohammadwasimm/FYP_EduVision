@@ -39,8 +39,9 @@ const STATUS = {
   },
 };
 
-export function MonitoringCard({ student, liveFrame, onClick }) {
+export function MonitoringCard({ student, liveFrame, isExamExpired, onClick }) {
   const { name, rollNumber, examTitle, status = 'normal', metrics = {} } = student;
+
   const cfg = STATUS[status] || STATUS.normal;
   const warning = getWarningText(metrics);
   const isCritical = status === 'critical';
@@ -54,7 +55,14 @@ export function MonitoringCard({ student, liveFrame, onClick }) {
     >
       {/* ── Live camera area ─────────────────────────────── */}
       <div className="relative bg-slate-900 aspect-video overflow-hidden">
-        {liveFrame ? (
+        {isExamExpired ? (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-800 to-slate-900">
+            <div className="text-center space-y-2">
+              <p className="text-lg font-bold text-slate-300">⏱️ Exam Ended</p>
+              <p className="text-xs text-slate-400">No live feed available</p>
+            </div>
+          </div>
+        ) : liveFrame ? (
           <img
             src={liveFrame}
             alt="live feed"
@@ -67,11 +75,13 @@ export function MonitoringCard({ student, liveFrame, onClick }) {
           </div>
         )}
 
-        {/* Live indicator — top-left */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} animate-pulse`} />
-          <span className="text-[10px] text-white font-medium">LIVE</span>
-        </div>
+        {/* Live indicator — top-left (hide if exam expired) */}
+        {!isExamExpired && (
+          <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} animate-pulse`} />
+            <span className="text-[10px] text-white font-medium">LIVE</span>
+          </div>
+        )}
 
         {/* Warning overlay — bottom of video when not normal */}
         {warning && (
@@ -111,7 +121,7 @@ export function MonitoringCard({ student, liveFrame, onClick }) {
           {/* Mobile */}
           <MetricPill
             icon={<MdPhoneIphone className="w-2.5 h-2.5" />}
-            value={String(metrics.mobileDetected || 'No').includes('Yes') ? 'Detected' : 'None'}
+            value={String(metrics.mobileDetected || 'No').includes('Yes') ? `Detected (${(metrics.yoloConfidence * 100).toFixed(0)}%)` : 'None'}
             danger={String(metrics.mobileDetected || '').toLowerCase().includes('yes')}
           />
           {/* Gaze */}
