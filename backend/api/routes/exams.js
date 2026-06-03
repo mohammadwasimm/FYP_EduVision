@@ -8,6 +8,12 @@ router.use(express.text({ type: ['text/csv', 'text/plain'], limit: '5mb' }));
 
 const SNAP_DIR = path.resolve(__dirname, '..', 'data', 'snapshots');
 const PYTHON_PATH = path.resolve(__dirname, '..', '..', '..', 'venv', 'bin', 'python3');
+const PYTHONPATH = path.resolve(__dirname, '..', '..', '..', 'venv', 'lib', 'python3.10', 'site-packages');
+const PYTHON_ENV = {
+  ...process.env,
+  PYTHONPATH,
+  ROBOFLOW_API_KEY: process.env.ROBOFLOW_API_KEY || '',
+};
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -436,25 +442,61 @@ router.post('/instances/:id/metrics', (req, res) => {
       const newSeverity = severity === 'high' ? 'high' : recentIncident.severity;
       // Also backfill evidenceFile if it was null when the incident was first created
       const newEvidenceFile = recentIncident.evidenceFile || currentSnapshot;
+
+      // Update detection metrics
+      const mobileDetectedVal = mobileYes ? 'Yes' : 'No';
+      const mobileConfidence = metrics.yoloConfidence || recentIncident.mobileConfidence || 0;
+      const detectionMetricsObj = {
+        mobileDetected: mobileDetectedVal,
+        mobileConfidence,
+        headMovement: metrics.headMovement || recentIncident.headMovement || 'Normal',
+        eyeMovement: metrics.eyeMovement || recentIncident.eyeMovement || 'Unknown',
+        headPose: metrics.headPose || recentIncident.headPose || 'Unknown',
+        motionScore: metrics.motionScore || 0,
+        tabActive: metrics.tabActive !== false,
+      };
+
       db.prepare(`
         UPDATE incidents
-        SET snapshots=?, timestamp=datetime('now'), cheatingType=?, severity=?, evidenceFile=?
+        SET snapshots=?, timestamp=datetime('now'), cheatingType=?, severity=?, evidenceFile=?,
+            mobileDetected=?, headMovement=?, eyeMovement=?, headPose=?,
+            mobileConfidence=?, detectionMetrics=?
         WHERE id=?
-      `).run(JSON.stringify(snaps), cheatingType, newSeverity, newEvidenceFile, recentIncident.id);
+      `).run(
+        JSON.stringify(snaps), cheatingType, newSeverity, newEvidenceFile,
+        mobileDetectedVal, metrics.headMovement||'Normal', metrics.eyeMovement||'Unknown', metrics.headPose||'Unknown',
+        mobileConfidence, JSON.stringify(detectionMetricsObj),
+        recentIncident.id
+      );
     } else {
       // Create a new incident
       const row   = db.prepare(`SELECT id FROM incidents WHERE id LIKE 'inc-%' ORDER BY id DESC LIMIT 1`).get();
       const incId = row ? `inc-${String(parseInt(row.id.split('-')[1],10)+1).padStart(4,'0')}` : 'inc-0001';
       const initSnaps = currentSnapshot ? JSON.stringify([currentSnapshot]) : '[]';
 
+      // Extract detection metrics from the latest metrics object
+      const mobileDetectedVal = mobileYes ? 'Yes' : 'No';
+      const mobileConfidence = metrics.yoloConfidence || 0;
+      const detectionMetricsObj = {
+        mobileDetected: mobileDetectedVal,
+        mobileConfidence,
+        headMovement: metrics.headMovement || 'Normal',
+        eyeMovement: metrics.eyeMovement || 'Unknown',
+        headPose: metrics.headPose || 'Unknown',
+        motionScore: metrics.motionScore || 0,
+        tabActive: metrics.tabActive !== false,
+      };
+
       db.prepare(`
         INSERT OR IGNORE INTO incidents
-          (id,studentName,rollNumber,exam,subject,cheatingType,timestamp,date,severity,evidenceFile,instanceId,snapshots)
-        VALUES (?,?,?,?,?,?,datetime('now'),date('now'),?,?,?,?)
+          (id,studentName,rollNumber,exam,subject,cheatingType,timestamp,date,severity,evidenceFile,instanceId,snapshots,mobileDetected,headMovement,eyeMovement,headPose,mobileConfidence,detectionMetrics)
+        VALUES (?,?,?,?,?,?,datetime('now'),date('now'),?,?,?,?,?,?,?,?,?,?)
       `).run(
         incId, student?.name||null, student?.rollNumber||null,
         inst.examId, exam?.subject||null, cheatingType,
-        severity, currentSnapshot, id, initSnaps
+        severity, currentSnapshot, id, initSnaps,
+        mobileDetectedVal, metrics.headMovement||'Normal', metrics.eyeMovement||'Unknown', metrics.headPose||'Unknown',
+        mobileConfidence, JSON.stringify(detectionMetricsObj)
       );
 
       const newIncident = db.prepare('SELECT * FROM incidents WHERE id=?').get(incId);
@@ -537,10 +579,14 @@ router.post('/instances/:id/detect-mobile', async (req, res) => {
   const { id } = req.params;
   const { image } = req.body || {};
 
+  console.log('[detect-mobile endpoint] called for instance:', id, 'image size:', image ? image.length : 0);
+
   if (!image) return res.status(400).json({ error: 'Missing image in body' });
 
   const inst = db.prepare('SELECT * FROM exam_instances WHERE id=?').get(id);
   if (!inst) return res.status(404).json({ error: 'Instance not found' });
+
+  console.log('[detect-mobile] instance found, examId:', inst.examId);
 
   try {
     // Save image temporarily
@@ -556,27 +602,57 @@ router.post('/instances/:id/detect-mobile', async (req, res) => {
 
     // Call Python YOLO mobile detection (non-blocking, don't wait for result)
     detectMobileYOLO(tempFilePath).then(result => {
+      console.log('[mobile_detect result]', JSON.stringify(result));
+
       // Update metrics with YOLO result
       const currentMetrics = JSON.parse(inst.metrics || '{}');
       currentMetrics.mobileDetected = result.mobileDetected ? 'Yes' : 'No';
       currentMetrics.yoloConfidence = result.confidence || 0;
 
+      console.log('[updating metrics]', currentMetrics.mobileDetected, 'confidence:', result.confidence);
       db.prepare(`UPDATE exam_instances SET metrics=?, lastMetricsAt=datetime('now') WHERE id=?`)
         .run(JSON.stringify(currentMetrics), id);
 
-      // Clean up temp file
-      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+      // Save annotated detection image if available
+      let detectionSnapshotUrl = null;
+      if (result.annotatedImagePath && fs.existsSync(result.annotatedImagePath)) {
+        try {
+          const annotatedExt = path.extname(result.annotatedImagePath);
+          const detectionFilename = `detection_${id}_${Date.now()}${annotatedExt}`;
+          const detectionFilePath = path.resolve(SNAP_DIR, detectionFilename);
+          fs.copyFileSync(result.annotatedImagePath, detectionFilePath);
+          detectionSnapshotUrl = `/api/exams/instances/${id}/snapshot/file/${detectionFilename}`;
+          console.log('[detection snapshot saved]', detectionSnapshotUrl);
+        } catch (copyErr) {
+          console.error('[detection snapshot save failed]', copyErr);
+        }
+      }
 
-      // Emit update
+      // Clean up temp files
+      try { fs.unlinkSync(tempFilePath); } catch(_) {}
+      if (result.annotatedImagePath) try { fs.unlinkSync(result.annotatedImagePath); } catch(_) {}
+
+      // Update incident with detection snapshot if it exists
+      if (detectionSnapshotUrl) {
+        const incident = db.prepare('SELECT * FROM incidents WHERE instanceId = ? ORDER BY timestamp DESC LIMIT 1').get(id);
+        if (incident) {
+          db.prepare('UPDATE incidents SET mobileDetectionSnapshot=? WHERE id=?')
+            .run(detectionSnapshotUrl, incident.id);
+        }
+      }
+
+      // Emit update to the exam room
       if (global._io) {
-        global._io.emit('metrics_update', {
+        console.log('[emitting metrics_update] to room exam:' + inst.examId + ' mobileDetected:', currentMetrics.mobileDetected);
+        global._io.to(`exam:${inst.examId}`).emit('metrics_update', {
           instanceId: id,
           studentId: inst.studentId,
           metrics: currentMetrics,
           timestamp: new Date().toISOString()
         });
       }
-    }).catch(() => {
+    }).catch(err => {
+      console.error('[mobile_detect error]', err);
       try { fs.unlinkSync(tempFilePath); } catch(_) {}
     });
 
@@ -597,22 +673,36 @@ async function detectMobileYOLO(imagePath) {
       const python = spawn(PYTHON_PATH, [
         path.resolve(__dirname, '..', '..', 'ai_engine', 'mobile_detection.py'),
         imagePath
-      ]);
+      ], { env: PYTHON_ENV });
 
       let output = '';
+      let errorOutput = '';
       python.stdout.on('data', (data) => {
         output += data.toString();
       });
+      python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
 
       python.on('close', (code) => {
+        console.log('[mobile_detection] Python process closed, code:', code, 'output length:', output.length, 'stderr:', errorOutput.slice(0,100));
         if (code === 0 && output.trim()) {
           try {
             const result = JSON.parse(output);
-            resolve({ mobileDetected: result.mobile_detected || false, confidence: result.confidence || 0 });
+            console.log('[mobile_detection] Parsed result:', result);
+            resolve({
+              mobileDetected: result.mobile_detected || false,
+              confidence: result.confidence || 0,
+              annotatedImagePath: result.annotated_image_path || null,
+              detections: result.detections || []
+            });
           } catch (e) {
+            console.error('[mobile_detection] JSON parse error:', e.message, 'output:', output.slice(0,200));
             resolve({ mobileDetected: false, confidence: 0 });
           }
         } else {
+          if (errorOutput) console.error('[mobile_detection] Python stderr:', errorOutput.slice(0,300));
+          if (!output.trim()) console.warn('[mobile_detection] No output, code:', code);
           resolve({ mobileDetected: false, confidence: 0 });
         }
       });
@@ -620,7 +710,7 @@ async function detectMobileYOLO(imagePath) {
       setTimeout(() => {
         python.kill();
         resolve({ mobileDetected: false, confidence: 0 });
-      }, 5000); // 5 second timeout
+      }, 15000); // 15 second timeout
     } catch (err) {
       resolve({ mobileDetected: false, confidence: 0 });
     }
@@ -662,9 +752,9 @@ router.post('/instances/:id/detect-eye-movement', async (req, res) => {
       // Clean up temp file
       try { fs.unlinkSync(tempFilePath); } catch(_) {}
 
-      // Emit update
+      // Emit update to the exam room
       if (global._io) {
-        global._io.emit('metrics_update', {
+        global._io.to(`exam:${inst.examId}`).emit('metrics_update', {
           instanceId: id,
           studentId: inst.studentId,
           metrics: currentMetrics,
@@ -718,9 +808,9 @@ router.post('/instances/:id/detect-head-pose', async (req, res) => {
       // Clean up temp file
       try { fs.unlinkSync(tempFilePath); } catch(_) {}
 
-      // Emit update
+      // Emit update to the exam room
       if (global._io) {
-        global._io.emit('metrics_update', {
+        global._io.to(`exam:${inst.examId}`).emit('metrics_update', {
           instanceId: id,
           studentId: inst.studentId,
           metrics: currentMetrics,
@@ -748,11 +838,15 @@ async function detectEyeMovement(imagePath) {
       const python = spawn(PYTHON_PATH, [
         path.resolve(__dirname, '..', '..', 'ai_engine', 'eye_movement_detection.py'),
         imagePath
-      ]);
+      ], { env: PYTHON_ENV });
 
       let output = '';
+      let errorOutput = '';
       python.stdout.on('data', (data) => {
         output += data.toString();
+      });
+      python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
       });
 
       python.on('close', (code) => {
@@ -761,9 +855,11 @@ async function detectEyeMovement(imagePath) {
             const result = JSON.parse(output);
             resolve({ gazeDirection: result.gaze_direction || 'Unknown' });
           } catch (e) {
+            console.error('[eye_movement] JSON parse error:', e.message);
             resolve({ gazeDirection: 'Unknown' });
           }
         } else {
+          if (errorOutput) console.error('[eye_movement] Python stderr:', errorOutput.slice(0,300));
           resolve({ gazeDirection: 'Unknown' });
         }
       });
@@ -771,7 +867,7 @@ async function detectEyeMovement(imagePath) {
       setTimeout(() => {
         python.kill();
         resolve({ gazeDirection: 'Unknown' });
-      }, 5000); // 5 second timeout
+      }, 15000); // 15 second timeout
     } catch (err) {
       resolve({ gazeDirection: 'Unknown' });
     }
@@ -787,11 +883,15 @@ async function detectHeadPose(imagePath) {
       const python = spawn(PYTHON_PATH, [
         path.resolve(__dirname, '..', '..', 'ai_engine', 'head_pose_detection.py'),
         imagePath
-      ]);
+      ], { env: PYTHON_ENV });
 
       let output = '';
+      let errorOutput = '';
       python.stdout.on('data', (data) => {
         output += data.toString();
+      });
+      python.stderr.on('data', (data) => {
+        errorOutput += data.toString();
       });
 
       python.on('close', (code) => {
@@ -800,9 +900,11 @@ async function detectHeadPose(imagePath) {
             const result = JSON.parse(output);
             resolve({ headDirection: result.head_direction || 'Unknown' });
           } catch (e) {
+            console.error('[head_pose] JSON parse error:', e.message);
             resolve({ headDirection: 'Unknown' });
           }
         } else {
+          if (errorOutput) console.error('[head_pose] Python stderr:', errorOutput.slice(0,300));
           resolve({ headDirection: 'Unknown' });
         }
       });
@@ -810,7 +912,7 @@ async function detectHeadPose(imagePath) {
       setTimeout(() => {
         python.kill();
         resolve({ headDirection: 'Unknown' });
-      }, 5000); // 5 second timeout
+      }, 15000); // 15 second timeout
     } catch (err) {
       resolve({ headDirection: 'Unknown' });
     }
