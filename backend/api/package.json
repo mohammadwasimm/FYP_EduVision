@@ -4,8 +4,8 @@
   "description": "EduVision Backend API",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "source ../venv/bin/activate && node index.js",
+    "dev": "source ../venv/bin/activate && node index.js"
   },
   "dependencies": {
     "axios": "^1.6.7",
