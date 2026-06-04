@@ -7,13 +7,40 @@ const router = express.Router();
 router.use(express.text({ type: ['text/csv', 'text/plain'], limit: '5mb' }));
 
 const SNAP_DIR = path.resolve(__dirname, '..', 'data', 'snapshots');
-const PYTHON_PATH = path.resolve(__dirname, '..', '..', '..', 'venv', 'bin', 'python3');
-const PYTHONPATH = path.resolve(__dirname, '..', '..', '..', 'venv', 'lib', 'python3.10', 'site-packages');
+const VENV_ROOT = path.resolve(__dirname, '..', '..', '..', 'venv');
+
+function resolvePythonExecutable() {
+  if (process.env.PYTHON_PATH) return process.env.PYTHON_PATH;
+
+  const windowsPython = path.join(VENV_ROOT, 'Scripts', 'python.exe');
+  const unixPython = path.join(VENV_ROOT, 'bin', 'python3');
+
+  if (fs.existsSync(windowsPython)) return windowsPython;
+  if (fs.existsSync(unixPython)) return unixPython;
+
+  return process.platform === 'win32' ? 'python' : 'python3';
+}
+
+function resolvePythonPath() {
+  const windowsSitePackages = path.join(VENV_ROOT, 'Lib', 'site-packages');
+  const unixSitePackages = path.join(VENV_ROOT, 'lib', 'python3.10', 'site-packages');
+
+  if (process.env.PYTHONPATH) return process.env.PYTHONPATH;
+  if (fs.existsSync(windowsSitePackages)) return windowsSitePackages;
+  if (fs.existsSync(unixSitePackages)) return unixSitePackages;
+  return '';
+}
+
+const PYTHON_PATH = resolvePythonExecutable();
+const PYTHONPATH = resolvePythonPath();
 const PYTHON_ENV = {
   ...process.env,
-  PYTHONPATH,
   ROBOFLOW_API_KEY: process.env.ROBOFLOW_API_KEY || '',
 };
+
+if (PYTHONPATH) {
+  PYTHON_ENV.PYTHONPATH = PYTHONPATH;
+}
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -628,6 +655,13 @@ router.post('/instances/:id/detect-mobile', async (req, res) => {
         }
       }
 
+      // Persist detection snapshot in metrics so admin monitoring screen can show it
+      if (result.mobileDetected && detectionSnapshotUrl) {
+        currentMetrics.mobileDetectionSnapshot = detectionSnapshotUrl;
+        db.prepare(`UPDATE exam_instances SET metrics=? WHERE id=?`)
+          .run(JSON.stringify(currentMetrics), id);
+      }
+
       // Clean up temp files
       try { fs.unlinkSync(tempFilePath); } catch(_) {}
       if (result.annotatedImagePath) try { fs.unlinkSync(result.annotatedImagePath); } catch(_) {}
@@ -641,10 +675,17 @@ router.post('/instances/:id/detect-mobile', async (req, res) => {
         }
       }
 
-      // Emit update to the exam room
+      // Emit update to the exam room (include detectionSnapshot for live monitoring card)
       if (global._io) {
         console.log('[emitting metrics_update] to room exam:' + inst.examId + ' mobileDetected:', currentMetrics.mobileDetected);
         global._io.to(`exam:${inst.examId}`).emit('metrics_update', {
+          instanceId: id,
+          studentId: inst.studentId,
+          metrics: currentMetrics,
+          timestamp: new Date().toISOString()
+        });
+        // Also broadcast globally so admin dashboard always gets it
+        global._io.emit('metrics_update', {
           instanceId: id,
           studentId: inst.studentId,
           metrics: currentMetrics,

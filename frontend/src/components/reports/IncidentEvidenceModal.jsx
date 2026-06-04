@@ -14,18 +14,23 @@ function buildSnapshotList(incident) {
 
   const list = [];
 
-  // Parse the snapshots array (multi-snapshot gallery)
+  // Mobile detection annotated snapshot goes FIRST (has bounding box — best evidence)
+  if (incident.mobileDetectionSnapshot && !list.includes(incident.mobileDetectionSnapshot)) {
+    list.push(incident.mobileDetectionSnapshot);
+  }
+
+  // evidenceFile next
+  if (incident.evidenceFile && !list.includes(incident.evidenceFile)) {
+    list.push(incident.evidenceFile);
+  }
+
+  // Rest of the snapshots gallery
   try {
     const parsed = typeof incident.snapshots === 'string'
       ? JSON.parse(incident.snapshots || '[]')
       : (Array.isArray(incident.snapshots) ? incident.snapshots : []);
     parsed.forEach(url => { if (url && !list.includes(url)) list.push(url); });
   } catch (_) {}
-
-  // Add evidenceFile as fallback if not already in list
-  if (incident.evidenceFile && !list.includes(incident.evidenceFile)) {
-    list.unshift(incident.evidenceFile);
-  }
 
   return list;
 }
@@ -185,6 +190,14 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
               </div>
             )}
 
+            {/* Detection badge on the annotated snapshot */}
+            {current === incident?.mobileDetectionSnapshot && (
+              <div className="absolute top-2 left-2 bg-rose-600 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                <MdPhoneIphone className="w-3 h-3" />
+                PHONE DETECTED
+              </div>
+            )}
+
             {/* Navigation arrows — only when multiple snapshots */}
             {total > 1 && (
               <>
@@ -214,27 +227,35 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
           {/* Right sidebar — thumbnail list */}
           {total > 0 && (
             <div className="w-20 flex flex-col gap-2 overflow-y-auto bg-slate-800/50 rounded-lg p-2 border border-slate-700" style={{ maxHeight: 320 }}>
-              {snapshots.map((snap, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setImgError(false); setCurrentIdx(i); }}
-                  className={`relative shrink-0 w-full aspect-square rounded overflow-hidden border-2 transition hover:border-white ${
-                    i === currentIdx ? 'border-white ring-2 ring-blue-500' : 'border-slate-600 opacity-60 hover:opacity-100'
-                  }`}
-                  title={`Shot ${i + 1}`}
-                >
-                  <img
-                    src={resolveUrl(snap)}
-                    alt={`thumb-${i}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                  {/* Badge with shot number */}
-                  <div className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-bold px-1 py-0.5 rounded">
-                    {i + 1}
-                  </div>
-                </button>
-              ))}
+              {snapshots.map((snap, i) => {
+                const isDetectionSnap = snap === incident?.mobileDetectionSnapshot;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => { setImgError(false); setCurrentIdx(i); }}
+                    className={`relative shrink-0 w-full aspect-square rounded overflow-hidden border-2 transition hover:border-white ${
+                      i === currentIdx
+                        ? 'border-white ring-2 ring-blue-500'
+                        : isDetectionSnap
+                          ? 'border-rose-500 opacity-80 hover:opacity-100'
+                          : 'border-slate-600 opacity-60 hover:opacity-100'
+                    }`}
+                    title={isDetectionSnap ? 'Phone Detection (annotated)' : `Shot ${i + 1}`}
+                  >
+                    <img
+                      src={resolveUrl(snap)}
+                      alt={`thumb-${i}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <div className={`absolute bottom-0.5 right-0.5 text-white text-[9px] font-bold px-1 py-0.5 rounded ${
+                      isDetectionSnap ? 'bg-rose-600' : 'bg-black/70'
+                    }`}>
+                      {isDetectionSnap ? '📱' : i + 1}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -242,21 +263,6 @@ export function IncidentEvidenceModal({ incident, open, onClose }) {
         {/* ── AI Detection Results ─────── */}
         <div className="space-y-4 border-t pt-4">
           <h3 className="text-sm font-semibold text-[var(--color-text)]">AI Detection Results</h3>
-
-          {/* Mobile Detection Snapshot (if available) */}
-          {incident.mobileDetectionSnapshot && (
-            <div className="space-y-2">
-              <p className="text-xs text-slate-500 font-medium">Mobile Detection Snapshot</p>
-              <div className="relative bg-slate-900 rounded-lg overflow-hidden" style={{ maxHeight: 220 }}>
-                <img
-                  src={incident.mobileDetectionSnapshot.startsWith('http') ? incident.mobileDetectionSnapshot : `${ENV_CONFIG.API_BASE_URL}${incident.mobileDetectionSnapshot}`}
-                  alt="Mobile detection snapshot"
-                  className="w-full object-contain"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Detection metrics grid - always visible */}
           <div className="grid grid-cols-2 gap-3">

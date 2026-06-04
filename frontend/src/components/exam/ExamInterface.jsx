@@ -173,10 +173,15 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
     let mounted = true;
     let httpUploadCounter = 0;
 
-    // Use 320×240 so the admin sees a clear image
+    // Snapshot canvas: 320×240 for admin preview
     const canvas = document.createElement('canvas');
     canvas.width = 320; canvas.height = 240;
     const ctx = canvas.getContext('2d');
+
+    // AI detection canvas: 640×480 so YOLO can reliably detect phones
+    const aiCanvas = document.createElement('canvas');
+    aiCanvas.width = 640; aiCanvas.height = 480;
+    const aiCtx = aiCanvas.getContext('2d');
 
     const capture = async () => {
       try {
@@ -184,6 +189,8 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         if (!video || video.readyState < 2) return;
         ctx.drawImage(video, 0, 0, 320, 240);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+        aiCtx.drawImage(video, 0, 0, 640, 480);
+        const aiDataUrl = aiCanvas.toDataURL('image/jpeg', 0.85);
 
         let instId = instanceIdRef.current
           || (paperInstance && paperInstance.instance && paperInstance.instance.id)
@@ -227,12 +234,12 @@ export function ExamInterface({ examId, instanceId: instanceIdProp, paperInstanc
         if (instId && httpUploadCounter % 1 === 0) {
           try {
             const { examsApi } = await import('../../store/apiClients/examsClient');
-            // YOLO mobile detection
-            await examsApi.detectMobile(instId, dataUrl);
+            // YOLO mobile detection (uses high-res frame for accuracy)
+            await examsApi.detectMobile(instId, aiDataUrl);
             // Eye movement detection
-            await examsApi.detectEyeMovement(instId, dataUrl);
+            await examsApi.detectEyeMovement(instId, aiDataUrl);
             // Head pose detection
-            await examsApi.detectHeadPose(instId, dataUrl);
+            await examsApi.detectHeadPose(instId, aiDataUrl);
             // Results are handled asynchronously on the backend via Socket.io
           } catch (_) { /* non-fatal, detections are optional */ }
         }

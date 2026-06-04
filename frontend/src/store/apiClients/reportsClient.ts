@@ -17,6 +17,14 @@ export interface Incident {
   /** JSON-encoded array of snapshot URLs, e.g. '["/api/exams/instances/…"]' */
   snapshots?: string | null;
   instanceId?: string | null;
+  mobileDetected?: string | null;
+  mobileConfidence?: number | null;
+  /** URL to the annotated phone detection image (with bounding box) */
+  mobileDetectionSnapshot?: string | null;
+  headMovement?: string | null;
+  eyeMovement?: string | null;
+  headPose?: string | null;
+  detectionMetrics?: string | null;
 }
 
 export const reportsApi = {

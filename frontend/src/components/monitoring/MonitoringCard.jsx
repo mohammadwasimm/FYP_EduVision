@@ -1,6 +1,7 @@
 import { FiCamera, FiAlertTriangle, FiWifi } from "react-icons/fi";
 import { MdPhoneIphone } from "react-icons/md";
 import { BsEyeSlash } from "react-icons/bs";
+import { ENV_CONFIG } from "../../config/env";
 
 // Derive a human-readable warning from live metrics
 function getWarningText(metrics = {}) {
@@ -39,6 +40,12 @@ const STATUS = {
   },
 };
 
+function resolveUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http') || url.startsWith('data:')) return url;
+  return `${ENV_CONFIG.API_BASE_URL}${url}`;
+}
+
 export function MonitoringCard({ student, liveFrame, isExamExpired, onClick }) {
   const { name, rollNumber, examTitle, status = 'normal', metrics = {} } = student;
 
@@ -46,6 +53,10 @@ export function MonitoringCard({ student, liveFrame, isExamExpired, onClick }) {
   const warning = getWarningText(metrics);
   const isCritical = status === 'critical';
   const isWarning  = status === 'warning';
+  const mobileDetected = String(metrics.mobileDetected || '').toLowerCase() === 'yes';
+  const detectionSnapshot = mobileDetected && metrics.mobileDetectionSnapshot
+    ? resolveUrl(metrics.mobileDetectionSnapshot)
+    : null;
 
   return (
     <div
@@ -80,6 +91,16 @@ export function MonitoringCard({ student, liveFrame, isExamExpired, onClick }) {
           <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 rounded-full px-2 py-0.5">
             <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} animate-pulse`} />
             <span className="text-[10px] text-white font-medium">LIVE</span>
+          </div>
+        )}
+
+        {/* Mobile detection snapshot — top-right corner thumbnail */}
+        {detectionSnapshot && (
+          <div className="absolute top-2 right-2 w-20 h-14 rounded-md overflow-hidden border-2 border-rose-500 shadow-lg">
+            <img src={detectionSnapshot} alt="detection" className="w-full h-full object-cover" />
+            <div className="absolute bottom-0 left-0 right-0 bg-rose-600/90 text-[8px] text-white text-center py-0.5 font-bold">
+              PHONE
+            </div>
           </div>
         )}
 

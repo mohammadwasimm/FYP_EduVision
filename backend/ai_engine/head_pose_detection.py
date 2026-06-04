@@ -1,134 +1,103 @@
 import cv2
-import dlib
 import numpy as np
 import math
 import json
 import sys
-
-# Load face detector & landmarks predictor
-detector = dlib.get_frontal_face_detector()
 import os
-predictor_path = os.path.join(os.path.dirname(__file__), "model", "shape_predictor_68_face_landmarks.dat")
-predictor = dlib.shape_predictor(predictor_path)
 
-# 3D Model Points (Mapped to Facial Landmarks)
-model_points = np.array([
-    (0.0, 0.0, 0.0),        # Nose tip
-    (0.0, -50.0, -10.0),    # Chin
-    (-30.0, 40.0, -10.0),   # Left eye
-    (30.0, 40.0, -10.0),    # Right eye
-    (-25.0, -30.0, -10.0),  # Left mouth corner
-    (25.0, -30.0, -10.0)    # Right mouth corner
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# Simple 3-D model points for solvePnP using basic facial geometry heuristics
+# (nose tip, chin, left eye, right eye, left mouth, right mouth)
+MODEL_POINTS = np.array([
+    (0.0,   0.0,   0.0),
+    (0.0,  -50.0, -10.0),
+    (-30.0, 40.0, -10.0),
+    (30.0,  40.0, -10.0),
+    (-25.0,-30.0, -10.0),
+    (25.0, -30.0, -10.0),
 ], dtype=np.float64)
 
-# Camera Calibration (Assuming 640x480)
-focal_length = 640
-center = (320, 240)
-camera_matrix = np.array([
-    [focal_length, 0, center[0]],
-    [0, focal_length, center[1]],
-    [0, 0, 1]
-], dtype=np.float64)
 
-dist_coeffs = np.zeros((4, 1))
+def estimate_landmarks(face_rect, frame_shape):
+    """Estimate 6 facial landmark positions from the face bounding box."""
+    x, y, w, h = face_rect
+    # Approximate landmark positions as fractions of the bounding box
+    pts = np.array([
+        (x + w * 0.50, y + h * 0.45),  # nose tip
+        (x + w * 0.50, y + h * 0.85),  # chin
+        (x + w * 0.25, y + h * 0.35),  # left eye
+        (x + w * 0.75, y + h * 0.35),  # right eye
+        (x + w * 0.30, y + h * 0.70),  # left mouth corner
+        (x + w * 0.70, y + h * 0.70),  # right mouth corner
+    ], dtype=np.float64)
+    return pts
 
-def get_head_pose_angles(image_points):
-    """Calculate head pose angles from image points"""
-    success, rotation_vector, translation_vector = cv2.solvePnP(
-        model_points, image_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE
-    )
-    if not success:
-        return None
-
-    rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
-    sy = math.sqrt(rotation_matrix[0, 0]**2 + rotation_matrix[1, 0]**2)
-    singular = sy < 1e-6
-
-    if not singular:
-        pitch = math.atan2(rotation_matrix[2, 1], rotation_matrix[2, 2])
-        yaw = math.atan2(-rotation_matrix[2, 0], sy)
-        roll = math.atan2(rotation_matrix[1, 0], rotation_matrix[0, 0])
-    else:
-        pitch = math.atan2(-rotation_matrix[1, 2], rotation_matrix[1, 1])
-        yaw = math.atan2(-rotation_matrix[2, 0], sy)
-        roll = 0
-
-    return np.degrees(pitch), np.degrees(yaw), np.degrees(roll)
 
 def process_head_pose(frame):
-    """Detect head pose from frame"""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = detector(gray)
+    h, w = frame.shape[:2]
+    gray  = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(80, 80))
 
-    head_direction = "Looking at Screen"
+    if len(faces) == 0:
+        return "Looking at Screen"
 
-    for face in faces:
-        landmarks = predictor(gray, face)
-        image_points = np.array([
-            (landmarks.part(30).x, landmarks.part(30).y),  # Nose tip
-            (landmarks.part(8).x, landmarks.part(8).y),    # Chin
-            (landmarks.part(36).x, landmarks.part(36).y),  # Left eye
-            (landmarks.part(45).x, landmarks.part(45).y),  # Right eye
-            (landmarks.part(48).x, landmarks.part(48).y),  # Left mouth corner
-            (landmarks.part(54).x, landmarks.part(54).y)   # Right mouth corner
-        ], dtype=np.float64)
+    face_rect = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)[0]
+    image_points = estimate_landmarks(face_rect, frame.shape)
 
-        angles = get_head_pose_angles(image_points)
-        if angles is None:
-            continue
+    focal = w
+    camera_matrix = np.array([
+        [focal, 0,     w / 2.0],
+        [0,     focal, h / 2.0],
+        [0,     0,     1.0    ],
+    ], dtype=np.float64)
+    dist_coeffs = np.zeros((4, 1))
 
-        pitch, yaw, roll = angles
+    ok, rvec, _ = cv2.solvePnP(
+        MODEL_POINTS, image_points, camera_matrix, dist_coeffs,
+        flags=cv2.SOLVEPNP_ITERATIVE
+    )
+    if not ok:
+        return "Looking at Screen"
 
-        # Determine head direction based on angles
-        # Thresholds for detecting if student is looking at screen
-        PITCH_THRESHOLD = 8
-        YAW_THRESHOLD = 12
-        ROLL_THRESHOLD = 5
+    R, _ = cv2.Rodrigues(rvec)
+    sy = math.sqrt(R[0, 0] ** 2 + R[1, 0] ** 2)
+    if sy > 1e-6:
+        pitch = math.degrees(math.atan2(R[2, 1], R[2, 2]))
+        yaw   = math.degrees(math.atan2(-R[2, 0], sy))
+        roll  = math.degrees(math.atan2(R[1, 0], R[0, 0]))
+    else:
+        pitch = math.degrees(math.atan2(-R[1, 2], R[1, 1]))
+        yaw   = math.degrees(math.atan2(-R[2, 0], sy))
+        roll  = 0.0
 
-        if abs(yaw) <= YAW_THRESHOLD and abs(pitch) <= PITCH_THRESHOLD and abs(roll) <= ROLL_THRESHOLD:
-            head_direction = "Looking at Screen"
-        elif yaw < -15:
-            head_direction = "Looking Left"
-        elif yaw > 15:
-            head_direction = "Looking Right"
-        elif pitch > 10:
-            head_direction = "Looking Up"
-        elif pitch < -10:
-            head_direction = "Looking Down"
-        elif abs(roll) > 7:
-            head_direction = "Tilted"
-        else:
-            head_direction = "Looking at Screen"
+    if abs(yaw) <= 12 and abs(pitch) <= 8 and abs(roll) <= 5:
+        return "Looking at Screen"
+    elif yaw < -15:
+        return "Looking Left"
+    elif yaw > 15:
+        return "Looking Right"
+    elif pitch > 10:
+        return "Looking Up"
+    elif pitch < -10:
+        return "Looking Down"
+    elif abs(roll) > 7:
+        return "Tilted"
+    return "Looking at Screen"
 
-        break  # Process only first face
-
-    return head_direction
 
 def process_head_pose_file(image_path):
-    """
-    Detect head pose from image file.
-    Returns JSON with head direction.
-    """
     try:
         frame = cv2.imread(image_path)
         if frame is None:
             return {"head_direction": "Unknown", "error": "Could not read image"}
-
-        head_direction = process_head_pose(frame)
-        return {
-            "head_direction": head_direction,
-            "error": None
-        }
+        return {"head_direction": process_head_pose(frame), "error": None}
     except Exception as e:
-        return {
-            "head_direction": "Unknown",
-            "error": str(e)
-        }
+        return {"head_direction": "Unknown", "error": str(e)}
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        image_path = sys.argv[1]
-        result = process_head_pose_file(image_path)
-        print(json.dumps(result))
+        print(json.dumps(process_head_pose_file(sys.argv[1])))
     else:
         print(json.dumps({"head_direction": "Unknown", "error": "No image path provided"}))
